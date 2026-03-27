@@ -141,6 +141,7 @@ monogatari.script ({
     - `"ell Hi Zaydin~~!",`
   - Regex
     - Character Dialog - `^(?<character>.+?):\s*(?<text>.+)$`
+
 **NOTE: The converter is a bit "All Intensive." So, like with the example above, if you wrote `I have one goal: success.`, the converter would shorten everything behind the colon to a 3 lowercase letters (including the space) and output `"i h success.",`. This was done by design to help individuals who forget/don't set up their characters before using the converter. However, in the future, this may be changed to prevent situations as mentioned.** 
 
 # Installation
