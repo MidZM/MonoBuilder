@@ -8,15 +8,15 @@ MonoBuilder is a graphical interface development tool designed and developed to 
 
 ## Features
 - Character Manager
- - Actively manage which characters are listed in your project.
- - Synchronize existing characters from your current project with the program. (*Requires Setup)
- - Bulk add or remove any number of characters to your project without needlessly copying and pasting. (*Requires Setup)
- - Easily update character details, both in the program and in your game project.
+  - Actively manage which characters are listed in your project.
+  - Synchronize existing characters from your current project with the program. (*Requires Setup)
+  - Bulk add or remove any number of characters to your project without needlessly copying and pasting. (*Requires Setup)
+  - Easily update character details, both in the program and in your game project.
 - Script Builder
- - Build scripts from raw script data and convert them into engine labels at the push of a button. (**Customizability Options Available)
- - Synchronize existing labels from your current project with the program. (**NOTE**: Synchronized scripts can be automatically converted to raw script data for editing purposes) (*Requires Setup)
- - Add, remove, and update existing labels in your game, or add new ones directly to your script file. (*Requires Setup)
- - Automatically check to see if any changes were made to the script before or during the application's runtime, and decide if those changes should be reflected in the program. (*Requires Setup)
+  - Build scripts from raw script data and convert them into engine labels at the push of a button. (**Customizability Options Available)
+  - Synchronize existing labels from your current project with the program. (**NOTE**: Synchronized scripts can be automatically converted to raw script data for editing purposes) (*Requires Setup)
+  - Add, remove, and update existing labels in your game, or add new ones directly to your script file. (*Requires Setup)
+  - Automatically check to see if any changes were made to the script before or during the application's runtime, and decide if those changes should be reflected in the program. (*Requires Setup)
 
 ## Known Issues
 - Only one instance of the **Script** & **Character** files are currently supported. This will be remedied in the future, allowing for multiple instances of all file types.
@@ -24,22 +24,22 @@ MonoBuilder is a graphical interface development tool designed and developed to 
 
 ## Planned Features
 - Character Builder
- - An all-encompassing character builder that allows users to easily add and manage sprites for all of their existing characters.
+  - An all-encompassing character builder that allows users to easily add and manage sprites for all of their existing characters.
 - Image Builder
- - Easily import and manage images associated with your game. (Resizing, updating, etc.)
+  - Easily import and manage images associated with your game. (Resizing, updating, etc.)
 - Scene Builder
- - Similar to the **Image Builder**, import and manage images associated with scenes within your game.
+  - Similar to the **Image Builder**, import and manage images associated with scenes within your game.
 - Audio Builder
- - Track and manage any music, sound, or voice audio that you'll be using in your game.
+  - Track and manage any music, sound, or voice audio that you'll be using in your game.
 - Particle Builder
- - A visualizer capable of showing you what your particles will look like when imported into the game.
- - (**Thought in Progress**. The particle system is incredibly complex. As such, accounting for everything it's capable of is a challenge I may not be capable of accomplishing.)
+  - A visualizer capable of showing you what your particles will look like when imported into the game.
+  - (**Thought in Progress**. The particle system is incredibly complex. As such, accounting for everything it's capable of is a challenge I may not be capable of accomplishing.)
 - Message Builder
- - Easily build and manage default messages that will be relayed to players during gameplay.
+  - Easily build and manage default messages that will be relayed to players during gameplay.
 - Notification Builder
- - Build and manage notifications that will be sent to players during gameplay.
+  - Build and manage notifications that will be sent to players during gameplay.
 - Credits Manager
- - Build and configure the credits screen to appear and act as you intend.
+  - Build and configure the credits screen to appear and act as you intend.
 
 ### *Requires Setup
 Many features require the developer to set up their environment. This process is fairly easy to implement and includes automatic fail-safes in case files or folders are changed later.
@@ -54,11 +54,11 @@ Many features require the developer to set up their environment. This process i
 
 #### Setting up the Characters File for Program Manipulation and Development:
 - Insert start and end tags inside of the `monogatari.characters({...});` definition.
- - `// CHARACTERS_INSERTION_POINT`
- - `// END_CHARACTERS_INSERTION_POINT`
+  - `// CHARACTERS_INSERTION_POINT`
+  - `// END_CHARACTERS_INSERTION_POINT`
 - Insert start and end tags on **EACH** character inside of the `monogatari.characters({...});` definition.
- - `// START_CHARACTER`
- - `// END_CHARACTER`
+  - `// START_CHARACTER`
+  - `// END_CHARACTER`
 - **It is highly recommended that you add a space between the character beginning and start tag, and the character ending and end tag. There's no guarantee the program will recognize all actions if there is no space there, even though I have painstakingly attempted to adjust it to accommodate as such.*
 
 ##### Example:
@@ -87,11 +87,11 @@ monogatari.characters ({
 
 #### Setting up the Script File for Program Manipulation and Development:
 - Insert start and end tags inside of the `monogatari.script({...});` definition.
- - `// SCRIPT_INSERTION_POINT`
- - `// END_SCRIPT_INSERTION_POINT`
+  - `// SCRIPT_INSERTION_POINT`
+  - `// END_SCRIPT_INSERTION_POINT`
 - Insert start and end tags on **EACH** script label inside of the `monogatari.script({...});` definition.
- - `// START_LABEL`
- - `// END_LABEL`
+  - `// START_LABEL`
+  - `// END_LABEL`
 - **It is highly recommended that you add a space between the script label beginning and start tag, and the script label ending and end tag. There's no guarantee the program will recognize all actions if there is no space there, even though I have painstakingly attempted to adjust it to accommodate as such.*
 
 ##### Example:
@@ -121,26 +121,26 @@ monogatari.script ({
 
 ### **Customizability Options Available
 - Script Builder
- - Inside the settings screen, there are some customization options for building scripts.
- - The default script character dialog and conversions are as follows:
- - Raw Data:
- - Elliosa - Hi Zaydin~~!
- - Zaydin - NO! NOT TODAY!
- - Zaydin flees
- - Converted Data:
- - `"ell Hi Zaydin~~!",`
- - `"zad NO! NOT TODAY!",`
- - `"Zaydin flees",`
- - Regex:
- - Character Dialog - `^(?<character>.+?)\s*-\s*(?<text>.+)$`
- - Narration - `^(?<text>.+)$`
- - If you wanted to change how the converter works, you would change the Regex:
- - Raw Data:
- - Elliosa: Hi Zaydin~~!
- - Converted Data:
- - `"ell Hi Zaydin~~!",`
- - Regex
- - Character Dialog - `^(?<character>.+?):\s*(?<text>.+)$`
+  - Inside the settings screen, there are some customization options for building scripts.
+  - The default script character dialog and conversions are as follows:
+  - Raw Data:
+    - Elliosa - Hi Zaydin~~!
+    - Zaydin - NO! NOT TODAY!
+    - Zaydin flees
+  - Converted Data:
+    - `"ell Hi Zaydin~~!",`
+    - `"zad NO! NOT TODAY!",`
+    - `"Zaydin flees",`
+  - Regex:
+    - Character Dialog - `^(?<character>.+?)\s*-\s*(?<text>.+)$`
+    - Narration - `^(?<text>.+)$`
+  - If you wanted to change how the converter works, you would change the Regex:
+  - Raw Data:
+    - Elliosa: Hi Zaydin~~!
+  - Converted Data:
+    - `"ell Hi Zaydin~~!",`
+  - Regex
+    - Character Dialog - `^(?<character>.+?):\s*(?<text>.+)$`
 **NOTE: The converter is a bit "All Intensive." So, like with the example above, if you wrote `I have one goal: success.`, the converter would shorten everything behind the colon to a 3 lowercase letters (including the space) and output `"i h success.",`. This was done by design to help individuals who forget/don't set up their characters before using the converter. However, in the future, this may be changed to prevent situations as mentioned.** 
 
 # Installation
