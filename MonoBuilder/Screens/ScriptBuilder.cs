@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection.Emit;
@@ -17,7 +15,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace MonoBuilder.Screens
 {
-    public partial class ScriptBuilder : KryptonForm
+    public partial class ScriptBuilder : KryptonForm, ISynchronizable
     {
         private ScriptConversion ScriptConverter { get; set; }
         private AppSettings ApplicationSettings { get; set; }

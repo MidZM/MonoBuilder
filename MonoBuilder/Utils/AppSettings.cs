@@ -1,7 +1,6 @@
 ﻿using MonoBuilder.Screens.ScreenUtils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -80,7 +79,7 @@ namespace MonoBuilder.Utils
                     );
 
                 FolderNames = folderDescendants.ToDictionary(
-                        a => a.Attribute("Key")?.Value ?? "Unkown",
+                        a => a.Attribute("Key")?.Value ?? "Unknown",
                         a => a.Attribute("FolderName")?.Value ?? string.Empty
                     );
 
