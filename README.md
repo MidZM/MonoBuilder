@@ -3,6 +3,32 @@
 ### Current Version
 - 0.1.0
 
+### How To Use
+- Script Builder
+  - Set up characters you want to be converted in the `Settings Menu`. (Name and tag are required: Name = Character Name (Zaydin) | Tag = Character Tag (zad))
+  - Write the label you wish the script to be attached to. (Top input box)
+  - Write or copy/paste the script you wish to be converted into a label (Large input box)
+  - Raw script data has a specific format that is used to convert properly into a label. (The only format that is **REQUIRED** is character dialog, all others should convert properly regardless and are only made to make reading and viewing easier)
+    - Character Dialog - `Character Name - Character Text` (`Zaydin - Hello`)
+    - String Actions - `[show character zad at left with SlideInLeft duration 0.25s]`
+    - Object Actions (Enclosed) - `{ Function: { Apply: function() { return "cheese" } } }`
+    - Object Actions (Open):
+	```js
+	{
+		Function: {
+			Apply: function() {
+				return "cheese"
+			}
+		}
+    }
+	```
+	- Comments - `// This is a comment`
+	- Narration - `This is narration`
+	- Known Issue with Character Dialog:
+	  - `This would be narration - if it weren't for that pesky space dash space...`
+  - Click `Convert`
+  - Copy and paste the new label into your game project, or use the automatic script adder (*Requires Setup)
+
 ## What is MonoBuilder?
 MonoBuilder is a graphical interface development tool designed and developed to assist visual novel developers using the Monogatari game engine.
 
@@ -65,23 +91,23 @@ Many features require the developer to set up their environment. This process i
 ```js
 // Define the Characters
 monogatari.characters ({
-    // CHARACTERS_INSERTION_POINT
-    'y': { // START_CHARACTER
-        "name": "Yui",
-        "color": "#E36C09",
-        "sprites": {
- normal: 'yui.png',
- happy: 'yui-happy.png',
- sad: 'yui-sad.png',
-        },
-    }, // END_CHARACTER
+    // CHARACTERS_INSERTION_POINT
+    'y': { // START_CHARACTER
+        "name": "Yui",
+        "color": "#E36C09",
+        "sprites": {
+            normal: 'yui.png',
+            happy: 'yui-happy.png',
+            sad: 'yui-sad.png',
+        },
+    }, // END_CHARACTER
 
-    "yu": { // START_CHARACTER
-        "name": "Yuno",
-        "color": "#974806",
-        "directory": "Yuno",
-    }, // END_CHARACTER
-    // END_CHARACTERS_INSERTION_POINT
+    "yu": { // START_CHARACTER
+        "name": "Yuno",
+        "color": "#974806",
+        "directory": "Yuno",
+    }, // END_CHARACTER
+    // END_CHARACTERS_INSERTION_POINT
 });
 ```
 
@@ -97,25 +123,25 @@ monogatari.characters ({
 ##### Example:
 ```js
 monogatari.script ({
-    // SCRIPT_INSERTION_POINT
-    'Yes': [ // START_LABEL
-        'ell Thats awesome!',
-        'ell Then you are ready to go ahead and create an amazing Game!',
-        'ell I can’t wait to see what story you’ll tell!',
-        'end'
-    ], // END_LABEL
+    // SCRIPT_INSERTION_POINT
+    'Yes': [ // START_LABEL
+        'ell Thats awesome!',
+        'ell Then you are ready to go ahead and create an amazing Game!',
+        'ell I can’t wait to see what story you’ll tell!',
+        'end'
+    ], // END_LABEL
 
-    'No': [ // START_LABEL
+    'No': [ // START_LABEL
 
-        'ell You can do it now.',
+        'ell You can do it now.',
 
-        'show message Help',
+        'show message Help',
 
-        'ell Go ahead and create an amazing Game!',
-        'ell I can’t wait to see what story you’ll tell!',
-        'end'
-    ], // END_LABEL
-    // END_SCRIPT_INSERTION_POINT
+        'ell Go ahead and create an amazing Game!',
+        'ell I can’t wait to see what story you’ll tell!',
+        'end'
+    ], // END_LABEL
+    // END_SCRIPT_INSERTION_POINT
 });
 ```
 
