@@ -2,13 +2,12 @@
 using MonoBuilder.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
 using System.Windows.Forms;
 
 namespace MonoBuilder.Screens.ScreenUtils
 {
-    public partial class LoadScripts : KryptonForm
+    public partial class LoadScripts : KryptonForm, ISynchronizable
     {
         private AppSettings ApplicationSettings { get; set; }
         private FileEditor? Editor { get; set; }
@@ -68,12 +67,12 @@ namespace MonoBuilder.Screens.ScreenUtils
         }
 
         public void RunSynchronicityCheck()
-        {
-            if (Editor != null && Converter.CheckIsAutoSyncLabels())
+		{
+			if (Editor != null && Converter.CheckIsAutoSyncLabels())
             {
                 try
-                {
-                    var marginWidth = this.Width / 2 - 250;
+				{
+					var marginWidth = this.Width / 2 - 250;
                     var marginHeight = this.Height / 2 - 100;
                     var transitioner = new ScreenTransitioner(
                         location: new Point(marginWidth, marginHeight),
@@ -425,7 +424,6 @@ namespace MonoBuilder.Screens.ScreenUtils
                                 }
                                 else
                                 {
-                                    Debug.WriteLine(formatted);
                                     Editor.AddToScript(label, formatted);
                                 }
                             }

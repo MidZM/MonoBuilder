@@ -4,7 +4,6 @@ using MonoBuilder.Screens.ScreenUtils;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -12,6 +11,11 @@ using System.Threading.Tasks;
 
 namespace MonoBuilder.Utils
 {
+	public interface ISynchronizable
+	{
+		void RunSynchronicityCheck();
+	}
+
     static class FileWatcher
     {
         private static FileSystemWatcher? Watcher { get; set; }
@@ -169,37 +173,35 @@ namespace MonoBuilder.Utils
             }
         }
 
-        private static bool ReplaceProgramFile(string? filePath, string? oldFilePath, string? newFilePath, string asset)
-        {
-            if (filePath != null && string.Equals(oldFilePath, newFilePath, StringComparison.OrdinalIgnoreCase))
-            {
-                if (newFilePath != null)
-                {
-                    ApplicationSettings?.AddReplaceFilePath(asset, newFilePath);
-                    SetFileChanged(asset, true);
-                    return true;
-                }
-            }
+		private static bool ReplaceProgramFile(string? trackedPath, string? oldFilePath, string? newFilePath, string asset)
+		{
+			if (trackedPath != null && string.Equals(trackedPath, oldFilePath, StringComparison.OrdinalIgnoreCase))
+			{
+				if (newFilePath != null)
+				{
+					ApplicationSettings?.AddReplaceFilePath(asset, newFilePath);
+					SetFileChanged(asset, true);
+					return true;
+				}
+			}
+			return false;
+		}
 
-            return false;
-        }
+		private static bool ReplaceProgramFolder(string? trackedPath, string? oldFilePath, string? newFilePath, string asset)
+		{
+			if (trackedPath != null && string.Equals(trackedPath, oldFilePath, StringComparison.OrdinalIgnoreCase))
+			{
+				if (newFilePath != null)
+				{
+					ApplicationSettings?.AddReplaceFolderPath(asset, newFilePath);
+					SetFileChanged(asset, true);
+					return true;
+				}
+			}
+			return false;
+		}
 
-        private static bool ReplaceProgramFolder(string? filePath, string? oldFilePath, string? newFilePath, string asset)
-        {
-            if (filePath != null && string.Equals(oldFilePath, newFilePath, StringComparison.OrdinalIgnoreCase))
-            {
-                if (newFilePath != null)
-                {
-                    ApplicationSettings?.AddReplaceFolderPath(asset, newFilePath);
-                    SetFileChanged(asset, true);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static void ShowChangesMadeSettings()
+		private static void ShowChangesMadeSettings()
         {
             if (CurrentContext is Settings && AnyFileChanged())
             {
@@ -229,7 +231,10 @@ namespace MonoBuilder.Utils
                 }
             }
 
-            if (!DialogIsOpen && (CurrentContext is LoadScripts ||
+            if (Converter != null &&
+				Converter.CheckIsAutoSyncLabels() &&
+				!DialogIsOpen &&
+				(CurrentContext is LoadScripts ||
                 CurrentContext is ScriptBuilder ||
                 CurrentContext is ScriptBuilderOutput))
             {
@@ -242,10 +247,7 @@ namespace MonoBuilder.Utils
 
                 if (result == DialogResult.Yes)
                 {
-                    Type type = CurrentContext.GetType();
-                    var CheckSynchronicity = type.GetMethod("RunSynchronicityCheck");
-
-                    CheckSynchronicity?.Invoke(CurrentContext, null);
+					(CurrentContext as ISynchronizable)?.RunSynchronicityCheck();
                 }
 
                 DialogIsOpen = false;

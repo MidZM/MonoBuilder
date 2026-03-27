@@ -2,9 +2,7 @@ using Krypton.Toolkit;
 using MonoBuilder.Screens;
 using MonoBuilder.Screens.ScreenUtils;
 using MonoBuilder.Utils;
-using System.Diagnostics;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace MonoBuilder
 {
@@ -152,9 +150,9 @@ namespace MonoBuilder
 
 			foreach (var button in ButtonData)
 			{
-				if (ScriptFunctions.ContainsKey(button.Name) && ScriptFunctions[button.Name] != null)
+				if (ScriptFunctions.TryGetValue(button.Name, out var action))
 				{
-					button.Click += (s, e) => ScriptFunctions[button.Name](this);
+					button.Click += (s, e) => action(this);
 				}
 			}
 		}

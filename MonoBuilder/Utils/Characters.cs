@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -97,19 +96,19 @@ namespace MonoBuilder.Utils
                     }
                 }
             }
-            catch (FileNotFoundException error)
-            {
-                Console.WriteLine(error);
-            }
-            catch (XmlException error)
-            {
-                Console.WriteLine(error);
-            }
-            catch (Exception error)
-            {
-                Console.WriteLine(error);
-            }
-        }
+			catch (FileNotFoundException error)
+			{
+				DialogBox.Show($"Save Data Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
+			}
+			catch (XmlException error)
+			{
+				DialogBox.Show($"Script Settings Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
+			}
+			catch (Exception error)
+			{
+				DialogBox.Show($"Something went wrong!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
+			}
+		}
 
         public void SaveCharacters()
         {
