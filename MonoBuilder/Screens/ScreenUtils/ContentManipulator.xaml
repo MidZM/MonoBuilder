@@ -1,0 +1,101 @@
+﻿<Window
+    x:Class="MonoBuilder.Screens.ScreenUtils.ContentManipulator"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MonoBuilder.Screens.ScreenUtils"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:utils="clr-namespace:MonoBuilder.Utils"
+    Title="Content Manipulator"
+    Width="1000"
+    Height="235"
+    MaxHeight="505"
+    d:DataContext="{d:DesignInstance Type=local:ContentManipulator}"
+    Style="{StaticResource WindowStyle}"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <utils:HexToBrushConverter x:Key="HexToBrushConverter" />
+        <utils:ShouldLightenText x:Key="ShouldLightenText" />
+
+        <Style
+            x:Key="ColorButton"
+            BasedOn="{StaticResource DefaultButton}"
+            TargetType="Button">
+            <Setter Property="Background" Value="{Binding Content, RelativeSource={RelativeSource Self}, Converter={StaticResource HexToBrushConverter}}" />
+            <Setter Property="Foreground" Value="{Binding Content, RelativeSource={RelativeSource Self}, Converter={StaticResource ShouldLightenText}}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="3">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Cursor="Hand" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="MainContent" Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="125" />
+            <ColumnDefinition Width="125" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <Label
+            x:Name="LblEditingType"
+            Grid.Row="0"
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            Content="Add [Type]"
+            FontWeight="Bold" />
+        <ScrollViewer
+            Grid.Row="1"
+            Grid.Column="0"
+            Grid.ColumnSpan="3"
+            HorizontalScrollBarVisibility="Hidden"
+            VerticalScrollBarVisibility="Auto">
+            <Grid x:Name="ContentGrid" />
+        </ScrollViewer>
+        <Button
+            x:Name="BtnAdd"
+            Grid.Row="0"
+            Grid.Column="2"
+            Width="40"
+            Margin="1,1,5,1"
+            Padding="4,0,4,4"
+            HorizontalAlignment="Right"
+            Click="BtnAdd_Click"
+            Content="+"
+            FontSize="18"
+            FontWeight="UltraBold"
+            Style="{StaticResource DefaultButton}" />
+        <Button
+            x:Name="BtnSave"
+            Grid.Row="2"
+            Grid.Column="1"
+            Click="BtnSave_Click"
+            Content="Save &amp; Close"
+            IsEnabled="{Binding SaveBtnShouldEnable.Value}"
+            Style="{StaticResource DefaultButton}" />
+        <Button
+            x:Name="BtnCancel"
+            Grid.Row="2"
+            Grid.Column="2"
+            Click="BtnCancel_Click"
+            Content="Cancel"
+            Style="{StaticResource ErrorButton}" />
+    </Grid>
+</Window>

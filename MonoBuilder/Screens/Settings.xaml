@@ -1,0 +1,1072 @@
+﻿<Window
+    x:Class="MonoBuilder.Screens.Settings"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MonoBuilder.Screens"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:utils="clr-namespace:MonoBuilder.Utils"
+    Title="MonoBuilder | Settings"
+    Width="825"
+    Height="500"
+    d:DataContext="{d:DesignInstance Type=local:Settings}"
+    SizeChanged="Window_SizeChanged"
+    Style="{StaticResource WindowStyle}"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <Style TargetType="Label">
+            <Setter Property="Margin" Value="10,0,10,0" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <utils:HexToBrushConverter x:Key="HexToBrushConverter" />
+        <utils:ShouldLightenText x:Key="ShouldLightenText" />
+        <utils:ColorSyncedCells x:Key="ColorSyncedCells" />
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="70" />
+        </Grid.RowDefinitions>
+        <DockPanel>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <DockPanel MaxWidth="1250">
+                    <DockPanel x:Name="GeneralSettingsContainer" DockPanel.Dock="Top">
+                        <Label
+                            Content="General Settings"
+                            DockPanel.Dock="Top"
+                            FontSize="20" />
+                        <Label
+                            Content="Characters"
+                            DockPanel.Dock="Top"
+                            FontSize="14" />
+                        <Separator
+                            Margin="0,10,0,10"
+                            Background="Maroon"
+                            DockPanel.Dock="Top" />
+                        <TabControl
+                            x:Name="CharacterFilterTabs"
+                            Margin="10,0,10,0"
+                            Background="#111111"
+                            BorderBrush="Maroon"
+                            DockPanel.Dock="Top"
+                            SelectionChanged="CharacterFilterTabs_SelectionChanged" />
+                        <DataGrid
+                            x:Name="CharactersDataGrid"
+                            Width="782"
+                            Height="250"
+                            MaxWidth="1230"
+                            AutoGenerateColumns="False"
+                            CanUserAddRows="False"
+                            CanUserDeleteRows="False"
+                            CanUserResizeRows="False"
+                            DockPanel.Dock="Top"
+                            HeadersVisibility="Column"
+                            HorizontalScrollBarVisibility="Disabled"
+                            IsReadOnly="True"
+                            MouseDoubleClick="CharactersDataGrid_MouseDoubleClick"
+                            PreviewMouseLeftButtonDown="CharactersDataGrid_PreviewMouseLeftButtonDown"
+                            PreviewMouseWheel="CharactersDataGrid_PreviewMouseWheel"
+                            SelectedCellsChanged="CharactersDataGrid_SelectedCellsChanged"
+                            Tag="{Binding RelativeSource={RelativeSource AncestorType=Window}}">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem
+                                        x:Name="ContextMoveCharacter"
+                                        Header="Move Character"
+                                        ItemsSource="{Binding PlacementTarget.Tag.AvailableFiles, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                        MenuItem.Click="ContextMoveCharacter_Click"
+                                        SubmenuOpened="ContextMoveCharacter_SubmenuOpened" />
+                                    <Separator />
+                                    <MenuItem
+                                        x:Name="ContextAddCharacter"
+                                        Click="BtnAddCharacter_Click"
+                                        Header="Add Character" />
+                                    <MenuItem
+                                        x:Name="ContextModifyCharacter"
+                                        Click="BtnModifyCharacter_Click"
+                                        Header="Modify Character" />
+                                    <MenuItem
+                                        x:Name="ContextRemoveCharacter"
+                                        Click="BtnRemoveCharacter_Click"
+                                        Header="Remove Character" />
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="{Binding ., Converter={StaticResource ColorSyncedCells}}" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="DataGridCell">
+                                                <Border
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    SnapsToDevicePixels="True">
+                                                    <ContentPresenter Margin="5" VerticalAlignment="Center" />
+                                                </Border>
+
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background" Value="DarkCyan" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </DataGrid.Resources>
+
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    MinWidth="80"
+                                    Binding="{Binding EntityID}"
+                                    Header="Character ID" />
+                                <DataGridTextColumn
+                                    Width="*"
+                                    MinWidth="80"
+                                    Binding="{Binding Name}"
+                                    Header="Name" />
+                                <DataGridTextColumn
+                                    Width="*"
+                                    MinWidth="80"
+                                    Binding="{Binding Tag}"
+                                    Header="Tag" />
+                                <DataGridTextColumn
+                                    Width="*"
+                                    MinWidth="80"
+                                    Binding="{Binding Color}"
+                                    Header="Color">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style TargetType="DataGridCell">
+                                            <Setter Property="Background" Value="{Binding Color, Converter={StaticResource HexToBrushConverter}}" />
+                                            <Setter Property="Foreground" Value="{Binding Color, Converter={StaticResource ShouldLightenText}}" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="DataGridCell">
+                                                        <Border
+                                                            Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            SnapsToDevicePixels="True">
+                                                            <ContentPresenter Margin="5" VerticalAlignment="Center" />
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    MinWidth="80"
+                                    Binding="{Binding Directory}"
+                                    Header="Directory" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Grid
+                            x:Name="ButtonsGrid"
+                            Height="100"
+                            Margin="10,5,10,0"
+                            DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Button
+                                x:Name="BtnAddCharacter"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Click="BtnAddCharacter_Click"
+                                Content="Add Character"
+                                Style="{StaticResource DefaultButton}" />
+                            <Button
+                                x:Name="BtnModifyCharacter"
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Click="BtnModifyCharacter_Click"
+                                Content="Modify Character"
+                                IsEnabled="False"
+                                Style="{StaticResource DefaultButton}" />
+                            <Button
+                                x:Name="BtnRemoveCharacter"
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Click="BtnRemoveCharacter_Click"
+                                Content="Remove Character"
+                                IsEnabled="False"
+                                Style="{StaticResource DefaultButton}" />
+                            <Grid
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button
+                                    x:Name="BtnSaveCharacters"
+                                    Grid.Row="1"
+                                    Click="SaveCharactersToScript"
+                                    Content="Save Characters to Script"
+                                    IsEnabled="false"
+                                    Style="{StaticResource DefaultButton}" />
+                                <Button
+                                    x:Name="BtnImportCharacters"
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Click="ImportCharacters"
+                                    Content="Import Characters"
+                                    IsEnabled="false"
+                                    Style="{StaticResource DefaultButton}" />
+                            </Grid>
+                        </Grid>
+                        <Label
+                            Content="Game Directories"
+                            DockPanel.Dock="Top"
+                            FontSize="14" />
+                        <Separator
+                            Margin="0,10,0,10"
+                            Background="Maroon"
+                            DockPanel.Dock="Top" />
+                        <TabControl
+                            x:Name="AssetTabs"
+                            Margin="10"
+                            Padding="10"
+                            Background="#111111"
+                            BorderBrush="Maroon"
+                            DockPanel.Dock="Top">
+                            <TabItem x:Name="GeneralTab" Header="General">
+                                <DockPanel>
+                                    <Grid
+                                        x:Name="BaseFolderContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Label
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Margin="0"
+                                            VerticalAlignment="Center"
+                                            Content="Base Folder" />
+                                        <Button
+                                            x:Name="BaseFolderButton"
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Width="150"
+                                            Height="30"
+                                            Margin="0,5,0,5"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectDirectory"
+                                            Content="Select Folder"
+                                            Style="{StaticResource DefaultButton}" />
+                                        <TextBox
+                                            x:Name="BaseFolderInput"
+                                            Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select a Base Folder From the &quot;Select Folder&quot; Button..." />
+                                    </Grid>
+                                    <Grid
+                                        x:Name="AssetsFolderContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Label
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Margin="0"
+                                            VerticalAlignment="Center"
+                                            Content="Assets Folder" />
+                                        <Button
+                                            x:Name="AssetsFolderButton"
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Width="150"
+                                            Height="30"
+                                            Margin="0,10,0,5"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectDirectory"
+                                            Content="Select Folder"
+                                            Style="{StaticResource DefaultButton}" />
+                                        <TextBox
+                                            x:Name="AssetsFolderInput"
+                                            Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select an Assets Folder From the &quot;Select Folder&quot; Button..." />
+                                    </Grid>
+                                    <Grid
+                                        x:Name="ImagesFolderContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Label
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Margin="0"
+                                            VerticalAlignment="Center"
+                                            Content="Images Folder" />
+                                        <Button
+                                            x:Name="ImagesFolderButton"
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Width="150"
+                                            Height="30"
+                                            Margin="0,10,0,5"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectDirectory"
+                                            Content="Select Folder"
+                                            Style="{StaticResource DefaultButton}" />
+                                        <TextBox
+                                            x:Name="ImagesFolderInput"
+                                            Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select an Images Folder From the &quot;Select Folder&quot; Button..." />
+                                    </Grid>
+                                    <Grid
+                                        x:Name="ScenesFolderContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Label
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Margin="0"
+                                            VerticalAlignment="Center"
+                                            Content="Scenes Folder" />
+                                        <Button
+                                            x:Name="ScenesFolderButton"
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Width="150"
+                                            Height="30"
+                                            Margin="0,10,0,5"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectDirectory"
+                                            Content="Select Folder"
+                                            Style="{StaticResource DefaultButton}" />
+                                        <TextBox
+                                            x:Name="ScenesFolderInput"
+                                            Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select a Scenes Folder From the &quot;Select Folder&quot; Button..." />
+                                    </Grid>
+                                    <Grid
+                                        x:Name="GalleryFolderContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Label
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Margin="0"
+                                            VerticalAlignment="Center"
+                                            Content="Gallery Folder" />
+                                        <Button
+                                            x:Name="GalleryFolderButton"
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Width="150"
+                                            Height="30"
+                                            Margin="0,10,0,5"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectDirectory"
+                                            Content="Select Folder"
+                                            Style="{StaticResource DefaultButton}" />
+                                        <TextBox
+                                            x:Name="GalleryFolderInput"
+                                            Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select a Gallery Folder From the &quot;Select Folder&quot; Button..." />
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem x:Name="CharactersTab" Header="Characters">
+                                <DockPanel>
+                                    <Button
+                                        x:Name="BtnAddCharactersFile"
+                                        Height="40"
+                                        Margin="10"
+                                        Padding="10"
+                                        HorizontalAlignment="Right"
+                                        Click="BtnAddFileLine_Click"
+                                        Content="Add New File"
+                                        DockPanel.Dock="Top"
+                                        Style="{StaticResource DefaultButton}" />
+                                    <Grid
+                                        x:Name="CharactersFileContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="175" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBox
+                                            x:Name="CharactersFileInput_0"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Margin="0,10,0,10"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select a Characters File From the &quot;Select File&quot; Button..." />
+                                        <Button
+                                            x:Name="CharactersFileButton_0"
+                                            Grid.Column="2"
+                                            Width="150"
+                                            Margin="10,10,0,10"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectFile"
+                                            Content="Select File"
+                                            Style="{StaticResource DefaultButton}" />
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem x:Name="ScriptTab" Header="Script">
+                                <DockPanel>
+                                    <Button
+                                        x:Name="BtnAddScriptFile"
+                                        Height="40"
+                                        Margin="10"
+                                        Padding="10"
+                                        HorizontalAlignment="Right"
+                                        Click="BtnAddFileLine_Click"
+                                        Content="Add New File"
+                                        DockPanel.Dock="Top"
+                                        Style="{StaticResource DefaultButton}" />
+                                    <Grid
+                                        x:Name="ScriptFileContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="175" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBox
+                                            x:Name="ScriptFileInput_0"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Margin="0,10,0,10"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select a Script File From the &quot;Select File&quot; Button..." />
+                                        <Button
+                                            x:Name="ScriptFileButton_0"
+                                            Grid.Column="2"
+                                            Width="150"
+                                            Margin="10,10,0,10"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectFile"
+                                            Content="Select File"
+                                            Style="{StaticResource DefaultButton}" />
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem x:Name="ImagesTab" Header="Images">
+                                <DockPanel>
+                                    <Button
+                                        x:Name="BtnAddImagesFile"
+                                        Height="40"
+                                        Margin="10"
+                                        Padding="10"
+                                        HorizontalAlignment="Right"
+                                        Click="BtnAddFileLine_Click"
+                                        Content="Add New File"
+                                        DockPanel.Dock="Top"
+                                        Style="{StaticResource DefaultButton}" />
+                                    <Grid
+                                        x:Name="ImagesFileContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="175" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBox
+                                            x:Name="ImagesFileInput_0"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Margin="0,10,0,10"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select an Images File From the &quot;Select File&quot; Button..." />
+                                        <Button
+                                            x:Name="ImagesFileButton_0"
+                                            Grid.Column="2"
+                                            Width="150"
+                                            Margin="10,10,0,10"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectFile"
+                                            Content="Select File"
+                                            Style="{StaticResource DefaultButton}" />
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem x:Name="ScenesTab" Header="Scenes">
+                                <DockPanel>
+                                    <Button
+                                        x:Name="BtnAddScenesFile"
+                                        Height="40"
+                                        Margin="10"
+                                        Padding="10"
+                                        HorizontalAlignment="Right"
+                                        Click="BtnAddFileLine_Click"
+                                        Content="Add New File"
+                                        DockPanel.Dock="Top"
+                                        Style="{StaticResource DefaultButton}" />
+                                    <Grid
+                                        x:Name="ScenesFileContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="175" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBox
+                                            x:Name="ScenesFileInput_0"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Margin="0,10,0,10"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select a Scenes File From the &quot;Select File&quot; Button..." />
+                                        <Button
+                                            x:Name="ScenesFileButton_0"
+                                            Grid.Column="2"
+                                            Width="150"
+                                            Margin="10,10,0,10"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectFile"
+                                            Content="Select File"
+                                            Style="{StaticResource DefaultButton}" />
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem x:Name="GalleryTab" Header="Gallery">
+                                <DockPanel>
+                                    <Button
+                                        x:Name="BtnAddGalleryFile"
+                                        Height="40"
+                                        Margin="10"
+                                        Padding="10"
+                                        HorizontalAlignment="Right"
+                                        Click="BtnAddFileLine_Click"
+                                        Content="Add New File"
+                                        DockPanel.Dock="Top"
+                                        Style="{StaticResource DefaultButton}" />
+                                    <Grid
+                                        x:Name="GalleryFileContainer"
+                                        Margin="10"
+                                        DockPanel.Dock="Top">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="175" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <TextBox
+                                            x:Name="GalleryFileInput_0"
+                                            Grid.Column="0"
+                                            Grid.ColumnSpan="2"
+                                            Margin="0,10,0,10"
+                                            FontSize="12"
+                                            IsReadOnly="True"
+                                            Style="{StaticResource DefaultTextBox}"
+                                            Tag="Select a Gallery File From the &quot;Select File&quot; Button..." />
+                                        <Button
+                                            x:Name="GalleryFileButton_0"
+                                            Grid.Column="2"
+                                            Width="150"
+                                            Margin="10,10,0,10"
+                                            Padding="5"
+                                            HorizontalAlignment="Right"
+                                            Click="SelectFile"
+                                            Content="Select File"
+                                            Style="{StaticResource DefaultButton}" />
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                        </TabControl>
+                    </DockPanel>
+
+                    <DockPanel
+                        x:Name="ScriptBuilderSettingsContainer"
+                        Margin="0,20,0,0"
+                        DockPanel.Dock="Top">
+                        <Label
+                            Content="Script Builder Settings"
+                            DockPanel.Dock="Top"
+                            FontSize="20" />
+                        <Label
+                            Content="Text Conversions"
+                            DockPanel.Dock="Top"
+                            FontSize="14" />
+                        <Separator
+                            Margin="0,10,0,10"
+                            Background="Maroon"
+                            DockPanel.Dock="Top" />
+                        <Grid Margin="10" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="General Options" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Label
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    Content="Auto-Sync Labels" />
+                                <Label
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Margin="5,5,5,0"
+                                    Content="Color Converted Scripts" />
+                                <CheckBox
+                                    x:Name="ShouldAutoSync"
+                                    Grid.Row="1"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    Checked="ShouldAutoSync_Checked"
+                                    Content="Enabled"
+                                    Unchecked="ShouldAutoSync_Checked" />
+                                <CheckBox
+                                    x:Name="ShouldColor"
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Margin="5,5,5,0"
+                                    Checked="ShouldColor_Checked"
+                                    Content="Color Script"
+                                    Unchecked="ShouldColor_Checked" />
+
+                                <Label
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    Margin="5,12,5,5"
+                                    Content="Indentation Type" />
+                                <Label
+                                    Grid.Row="2"
+                                    Grid.Column="1"
+                                    Margin="5,12,5,0"
+                                    Content="Indentation Amount (Spaces)" />
+                                <ComboBox
+                                    x:Name="IndentationType"
+                                    Grid.Row="3"
+                                    Grid.Column="0"
+                                    Margin="5,5,5,0"
+                                    SelectionChanged="IndentationType_SelectionChanged"
+                                    Style="{StaticResource DefaultComboBox}">
+                                    <ComboBoxItem Content="Spaces" />
+                                    <ComboBoxItem Content="Tabs" />
+                                </ComboBox>
+                                <TextBox
+                                    x:Name="IndentationAmount"
+                                    Grid.Row="3"
+                                    Grid.Column="1"
+                                    Margin="5,5,5,0"
+                                    PreviewTextInput="IndentationAmount_PreviewTextInput"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    Tag="e.g. 4"
+                                    TextChanged="IndentationAmount_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,10,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="Comments" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableComment"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexComment"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,0,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="Empty Lines" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableEmpty"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexEmpty"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,0,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="String Action" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableStringAction"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexStringAction"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,0,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="Object Action (Enclosed)" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableObjectEnclosedAction"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexObjectEnclosedAction"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,0,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="Object Action (Opening)" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableObjectActionOpen"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexObjectActionOpen"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,0,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="Object Action (Closing)" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableObjectActionClose"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexObjectActionClose"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,0,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="Character Dialog" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableCharacterLine"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexCharacterLine"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="10,0,10,0" DockPanel.Dock="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Label
+                                Grid.Column="0"
+                                Margin="0"
+                                VerticalAlignment="Center"
+                                Content="Narration" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="85" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox
+                                    x:Name="ChkEnableNarration"
+                                    Grid.Column="0"
+                                    Margin="5"
+                                    VerticalAlignment="Center"
+                                    Checked="CheckEnable_Checked"
+                                    Content="Enabled"
+                                    Unchecked="CheckEnable_Checked" />
+                                <TextBox
+                                    x:Name="BoxRegexNarration"
+                                    Grid.Column="1"
+                                    Margin="5"
+                                    Padding="2"
+                                    Style="{StaticResource DefaultTextBox}"
+                                    TextChanged="BoxRegex_TextChanged" />
+                            </Grid>
+                        </Grid>
+                    </DockPanel>
+                </DockPanel>
+            </ScrollViewer>
+        </DockPanel>
+        <Label
+            x:Name="ChangesMadeLabel"
+            Grid.Row="1"
+            Margin="10"
+            VerticalAlignment="Center"
+            Content="Changes Made"
+            Visibility="Collapsed" />
+        <StackPanel
+            Grid.Row="1"
+            Margin="10"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                x:Name="BtnSave"
+                Width="80"
+                Click="BtnSave_Click"
+                Content="Save"
+                IsEnabled="{Binding SaveBtnShouldEnable.Value}"
+                Style="{StaticResource DefaultButton}" />
+            <Button
+                x:Name="BtnSaveClose"
+                Width="100"
+                Click="BtnSaveClose_Click"
+                Content="Save &amp; Close"
+                IsEnabled="{Binding SaveBtnShouldEnable.Value}"
+                Style="{StaticResource DefaultButton}" />
+            <Button
+                x:Name="BtnExit"
+                Width="80"
+                Click="BtnExit_Click"
+                Content="Exit"
+                IsCancel="True"
+                Style="{StaticResource DefaultButton}" />
+        </StackPanel>
+    </Grid>
+</Window>

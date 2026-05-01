@@ -1,0 +1,55 @@
+﻿<Window
+    x:Class="MonoBuilder.Screens.ScreenUtils.ScriptBuilderOutput"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MonoBuilder.Screens.ScreenUtils"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="MonoBuilder | Script Output"
+    Width="1000"
+    Height="700"
+    d:DataContext="{d:DesignInstance Type=local:ScriptBuilderOutput}"
+    Style="{StaticResource WindowStyle}"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Grid x:Name="MainContent" Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <RichTextBox
+            x:Name="ScriptOutput"
+            Grid.Row="0"
+            Grid.Column="0"
+            Grid.ColumnSpan="3"
+            Margin="5"
+            IsReadOnly="True" />
+        <Button
+            x:Name="BtnClipboard"
+            Grid.Row="1"
+            Grid.Column="0"
+            Click="BtnClipboard_Click"
+            Content="Copy to Clipboard"
+            Style="{StaticResource DefaultButton}" />
+        <Button
+            x:Name="BtnSaveScript"
+            Grid.Row="1"
+            Grid.Column="1"
+            Click="BtnSaveScript_Click"
+            Content="Save to Script"
+            IsEnabled="False"
+            Style="{StaticResource DefaultButton}" />
+        <Button
+            x:Name="BtnReturn"
+            Grid.Row="1"
+            Grid.Column="2"
+            Click="BtnReturn_Click"
+            Content="Return to Editor"
+            Style="{StaticResource ErrorButton}" />
+    </Grid>
+</Window>

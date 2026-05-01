@@ -1,0 +1,67 @@
+﻿<Window
+    x:Class="MonoBuilder.Screens.ScreenUtils.ColorSelector"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:colorpicker="clr-namespace:ColorPicker;assembly=ColorPicker"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MonoBuilder.Screens.ScreenUtils"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Color"
+    Width="250"
+    Height="480"
+    ResizeMode="NoResize"
+    Style="{StaticResource WindowStyle}"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/ColorPicker;component/Styles/DefaultColorPickerStyle.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="45" />
+            <RowDefinition Height="45" />
+        </Grid.RowDefinitions>
+        <colorpicker:StandardColorPicker
+            x:Name="ColorPickerElm"
+            Grid.Row="0"
+            Grid.ColumnSpan="2"
+            Height="380"
+            SelectedColor="#FF0000"
+            ShowAlpha="False"
+            Style="{StaticResource DefaultColorPickerStyle}" />
+        <Button
+            x:Name="SelectColor"
+            Grid.Row="1"
+            Grid.Column="0"
+            Padding="0"
+            Click="SelectColor_Click"
+            Content="Select Color"
+            Style="{StaticResource DefaultButton}" />
+        <Button
+            x:Name="NoColor"
+            Grid.Row="1"
+            Grid.Column="1"
+            Padding="0"
+            Click="NoColor_Click"
+            Content="No Color"
+            Style="{StaticResource ErrorButton}" />
+        <Button
+            x:Name="BtnCancel"
+            Grid.Row="2"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Padding="0"
+            Click="BtnCancel_Click"
+            Content="Cancel Selection"
+            Style="{StaticResource DefaultButton}" />
+    </Grid>
+</Window>

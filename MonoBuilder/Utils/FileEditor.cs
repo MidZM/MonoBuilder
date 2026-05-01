@@ -3,106 +3,25 @@ using MonoBuilder.Screens.ScreenUtils;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace MonoBuilder.Utils
 {
-    /// <summary>Represents a collection of key/value pairs of strings and LoadedLabel objects that preserves insertion order.</summary>
-    public class TypedOrderedDictionary
-    {
-        /// <summary>Stores key/value pairs in the order in which they were added.</summary>
-        private readonly OrderedDictionary _inner = new OrderedDictionary();
-
-        /// <summary>Gets the number of elements contained in the collection.</summary>
-        public int Count => _inner.Count;
-        /// <summary>Gets a collection of loaded labels contained in the inner collection.</summary>
-        public IEnumerable<LoadedLabel> Values => _inner.Values.Cast<LoadedLabel>();
-        /// <summary>Gets a collection containing the keys in the collection.</summary>
-        public IEnumerable<string> Keys => _inner.Keys.Cast<string>();
-
-        /// <summary>
-        /// Gets or sets the loaded label associated with the specified key.
-        /// </summary>
-        /// <param name="key">The key of the label to get or set.</param>
-        /// <returns>The loaded label associated with the specified key, or null if the key does not exist.</returns>
-        public LoadedLabel? this[string key]
-        {
-            get => _inner.Contains(key) ? (LoadedLabel)_inner[key]! : null;
-            set
-            {
-                if (value is null) _inner.Remove(key);
-                else _inner[key] = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets the label at the specified index.
-        /// </summary>
-        /// <param name="index">The zero-based index of the label to retrieve.</param>
-        /// <returns>The label at the specified index, or null if the entry is not a LoadedLabel.</returns>
-        public LoadedLabel? this[int index] => (LoadedLabel?)_inner[index];
-
-        /// <summary>
-        /// Determines whether the collection contains the specified key.
-        /// </summary>
-        /// <param name="key">The key to locate in the collection.</param>
-        /// <returns>true if the collection contains an element with the specified key; otherwise, false.</returns>
-        public bool ContainsKey(string key) => _inner.Contains(key);
-
-        /// <summary>
-        /// Attempts to retrieve the LoadedLabel associated with the specified key.
-        /// </summary>
-        /// <param name="key">The key whose value to retrieve.</param>
-        /// <param name="value">When this method returns, contains the LoadedLabel associated with the specified key, if the key is found;
-        /// otherwise, null.</param>
-        /// <returns>true if the key was found; otherwise, false.</returns>
-        public bool TryGetValue(string key, out LoadedLabel? value)
-        {
-            if (_inner.Contains(key))
-            {
-                value = (LoadedLabel)_inner[key]!;
-                return true;
-            }
-            value = null;
-            return false;
-        }
-
-        /// <summary>
-        /// Removes the element with the specified key.
-        /// </summary>
-        /// <param name="key">The key of the element to remove.</param>
-        public void Remove(string key) => _inner.Remove(key);
-        /// <summary>
-        /// Removes the element at the specified index.
-        /// </summary>
-        /// <param name="index">The zero-based index of the element to remove.</param>
-        public void RemoveAt(int index) => _inner.RemoveAt(index);
-        /// <summary>
-        /// Inserts a key and value into the collection at the specified index.
-        /// </summary>
-        /// <param name="index">The zero-based index at which the key and value should be inserted.</param>
-        /// <param name="key">The key to insert.</param>
-        /// <param name="value">The value to insert.</param>
-        public void Insert(int index, string key, LoadedLabel value) => _inner.Insert(index, key, value);
-        /// <summary>
-        /// Removes all elements from the collection.
-        /// </summary>
-        public void Clear() => _inner.Clear();
-    }
-
     public partial class FileEditor
     {
         /// <summary>Gets or sets a collection of file names and their associated contents.</summary>
-        private Dictionary<string, string> Files { get; set; }
+        private OrderedDictionary<string, string> Files { get; set; }
         /// <summary>Gets or sets a collection of folder names and their corresponding paths.</summary>
-        private Dictionary<string, string> Folders { get; set; }
+        private OrderedDictionary<string, string> Folders { get; set; }
         /// <summary>Gets or sets the type of indentation used, such as spaces or tabs.</summary>
         private string IndentationType { get; set; }
         /// <summary>Gets or sets the number of spaces used for indentation.</summary>
@@ -116,9 +35,9 @@ namespace MonoBuilder.Utils
         private static partial Regex LabelRegex();
 
         /// <summary>Gets or sets the collection of labels that have not been synchronized.</summary>
-        private TypedOrderedDictionary UnsyncedLabels { get; set; } = new();
+        private LabelRepository UnsyncedLabels { get; } = new();
         /// <summary>Gets or sets the collection of labels synchronized with the current state.</summary>
-        private TypedOrderedDictionary SyncedLabels { get; set; } = new();
+        private LabelRepository SyncedLabels { get; } = new();
         /// <summary>Indicates whether scripts have been initialized.</summary>
         private bool _scriptsInitialized = false;
 
@@ -159,7 +78,7 @@ namespace MonoBuilder.Utils
         /// <param name="folders">A dictionary containing folder names and their descriptions.</param>
         /// <param name="indentType">The type of indentation to use, such as spaces or tabs.</param>
         /// <param name="indentAmount">The number of indentation units to apply.</param>
-        public FileEditor(Dictionary<string, string> files, Dictionary<string, string> folders, string indentType, int indentAmount)
+        public FileEditor(OrderedDictionary<string, string> files, OrderedDictionary<string, string> folders, string indentType, int indentAmount)
         {
             Files = files;
             Folders = folders;
@@ -167,18 +86,37 @@ namespace MonoBuilder.Utils
             IndentationAmount = indentAmount;
         }
 
+        private string ResolveFileKey(string fileKey)
+        {
+            if (Files.ContainsKey(fileKey))
+                return fileKey;
+
+            var prefixedMatch = Files.Keys.OrderBy(key => key).FirstOrDefault(key => key.StartsWith(fileKey + ":", StringComparison.Ordinal));
+            return prefixedMatch ?? fileKey;
+        }
+
         #region Utilities
         /// <summary>
         /// Gets the collection of labels that have not been synchronized.
         /// </summary>
         /// <returns>A TypedOrderedDictionary containing unsynced labels.</returns>
-        public TypedOrderedDictionary GetUnsyncedLabels() => UnsyncedLabels;
+        public OrderedDictionary<string, LoadedLabel> GetUnsyncedLabels(string fileKey = "Script") => UnsyncedLabels.GetFile(ResolveFileKey(fileKey));
 
         /// <summary>
-        /// Gets the collection of synchronized labels.
+        /// Gets the collection of synchronized labels for the specified file.
         /// </summary>
-        /// <returns>A TypedOrderedDictionary containing the synchronized labels.</returns>
-        public TypedOrderedDictionary GetSyncedLabels() => SyncedLabels;
+        /// <returns>A dictionary of synchronized labels keyed by label name.</returns>
+        public OrderedDictionary<string, LoadedLabel> GetSyncedLabels(string fileKey = "Script") => SyncedLabels.GetFile(ResolveFileKey(fileKey));
+
+        /// <summary>
+        /// Gets an observable collection of unsynced labels that can be bound directly in WPF.
+        /// </summary>
+        public ObservableCollection<LoadedLabel> GetUnsyncedLabelItems() => UnsyncedLabels.Items;
+
+        /// <summary>
+        /// Gets an observable collection of synced labels that can be bound directly in WPF.
+        /// </summary>
+        public ObservableCollection<LoadedLabel> GetSyncedLabelItems() => SyncedLabels.Items;
 
         /// <summary>
         /// Creates a binding list of label grid rows representing unsynced labels.
@@ -187,8 +125,8 @@ namespace MonoBuilder.Utils
         public BindingList<LabelGridRow> GetUnsyncedBindingSource()
         {
             var list = new BindingList<LabelGridRow>();
-            foreach (LoadedLabel l in UnsyncedLabels.Values)
-                list.Add(new LabelGridRow(l.Name, l.WordCount, l.Synced, l.InScript));
+            foreach (LoadedLabel l in UnsyncedLabels.Items)
+                list.Add(new LabelGridRow($"{l.FileKey}:{l.Name}", l.WordCount, l.Synced, l.InScript));
             return list;
         }
 
@@ -199,8 +137,8 @@ namespace MonoBuilder.Utils
         public BindingList<LabelGridRow> GetSyncedBindingSource()
         {
             var list = new BindingList<LabelGridRow>();
-            foreach (LoadedLabel l in SyncedLabels.Values)
-                list.Add(new LabelGridRow(l.Name, l.WordCount, l.Synced, l.InScript));
+            foreach (LoadedLabel l in SyncedLabels.Items)
+                list.Add(new LabelGridRow($"{l.FileKey}:{l.Name}", l.WordCount, l.Synced, l.InScript));
             return list;
         }
 
@@ -227,10 +165,11 @@ namespace MonoBuilder.Utils
         /// <param name="labelName">The name of the label to retrieve.</param>
         /// <param name="isUnsynced">true to search in the unsynced labels; false to search in the synced labels. Defaults to true.</param>
         /// <returns>The loaded label if found; otherwise, null.</returns>
-        public LoadedLabel? GetLabel(string labelName, bool isUnsynced = true)
+        public LoadedLabel? GetLabel(string labelName, bool isUnsynced = true, string fileKey = "Script")
         {
+            fileKey = ResolveFileKey(fileKey);
             var labels = isUnsynced ? UnsyncedLabels : SyncedLabels;
-            labels.TryGetValue(labelName, out var label);
+            labels.TryGetValue(fileKey, labelName, out var label);
             return label;
         }
 
@@ -239,7 +178,7 @@ namespace MonoBuilder.Utils
         /// </summary>
         /// <param name="label">The label to locate in the collection.</param>
         /// <returns>true if the label exists; otherwise, false.</returns>
-        private bool LabelExists(string label) => SyncedLabels.ContainsKey(label);
+        private bool LabelExists(string label, string fileKey = "Script") => SyncedLabels.Contains(ResolveFileKey(fileKey), label);
 
         /// <summary>
         /// Determines whether a script label matching the specified name exists in the script file.
@@ -247,9 +186,10 @@ namespace MonoBuilder.Utils
         /// <param name="label">The name of the script label to search for.</param>
         /// <returns>true if the script label exists; otherwise, false.</returns>
         /// <exception cref="Exception">Thrown when the script file path is missing or invalid.</exception>
-        public bool ScriptLabelExists(string label)
+        public bool ScriptLabelExists(string label, string fileKey = "Script")
         {
-            if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+            fileKey = ResolveFileKey(fileKey);
+            if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
             {
                 DialogBox.Show(
                     $"Something has gone wrong while attempting to search for a script label!\n\nPath: {filePath}",
@@ -291,9 +231,10 @@ namespace MonoBuilder.Utils
             return false;
         }
 
-        public Dictionary<string, bool> ScriptLabelExists(List<string> labels)
+        public Dictionary<string, bool> ScriptLabelExists(List<string> labels, string fileKey = "Script")
         {
-            if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+            fileKey = ResolveFileKey(fileKey);
+            if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
             {
                 DialogBox.Show(
                     $"Something has gone wrong while attempting to search for multiple script labels!\n\nPath: {filePath}",
@@ -356,9 +297,10 @@ namespace MonoBuilder.Utils
         /// <param name="content">The content to compare against the script file.</param>
         /// <returns>true if the content matches; false if it differs or the label is not found in the file.</returns>
         /// <exception cref="Exception">Thrown when the script file path is missing or invalid.</exception>
-        public bool ScriptContentMatches(string label, string content)
+        public bool ScriptContentMatches(string label, string content, string fileKey = "Script")
         {
-            if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+            fileKey = ResolveFileKey(fileKey);
+            if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
             {
                 DialogBox.Show(
                     $"Something has gone wrong while attempting to compare script content for \"{label}\"!\n\nPath: {filePath}",
@@ -416,9 +358,10 @@ namespace MonoBuilder.Utils
         /// <param name="labels">The labels whose content to compare.</param>
         /// <returns>A dictionary mapping each label to true if the content matches; false if it differs or the label is not found.</returns>
         /// <exception cref="Exception">Thrown when the script file path is missing or invalid.</exception>
-        public Dictionary<string, bool> ScriptContentMatches(List<string> labels)
+        public Dictionary<string, bool> ScriptContentMatches(List<string> labels, string fileKey = "Script")
         {
-            if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+            fileKey = ResolveFileKey(fileKey);
+            if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
             {
                 DialogBox.Show(
                     $"Something has gone wrong while attempting to compare script content!\n\nPath: {filePath}",
@@ -463,7 +406,7 @@ namespace MonoBuilder.Utils
                     bool isEndLabel = line.StartsWith("] " + endLabelTag) || line.StartsWith("], " + endLabelTag);
                     if (isEndLabel)
                     {
-                        SyncedLabels.TryGetValue(currentLabel, out var syncedLabel);
+                        SyncedLabels.TryGetValue(fileKey, currentLabel, out var syncedLabel);
                         var syncedContent = syncedLabel?.Content?.ToString() ?? string.Empty;
                         var deformatted = DeformatFromScript(scriptContent.ToString());
 
@@ -567,14 +510,15 @@ namespace MonoBuilder.Utils
         /// </summary>
         /// <param name="forceReload">true to force reloading the script labels; otherwise, false.</param>
         /// <returns>A TypedOrderedDictionary containing the unsynced script labels.</returns>
-        public TypedOrderedDictionary InitializeScripts(bool forceReload = false)
+        public OrderedDictionary<string, LoadedLabel> InitializeScripts(string fileKey = "Script", bool forceReload = false)
         {
-            if (forceReload == true || UnsyncedLabels == null)
+            fileKey = ResolveFileKey(fileKey);
+            if (forceReload || !UnsyncedLabels.HasFile(fileKey))
             {
-                UnsyncedLabels = PreloadAllScripts();
+                UnsyncedLabels.ReplaceFile(fileKey, PreloadAllScripts(fileKey));
                 _scriptsInitialized = true;
             }
-            return UnsyncedLabels;
+            return UnsyncedLabels.GetFile(fileKey);
         }
 
         /// <summary>
@@ -619,10 +563,11 @@ namespace MonoBuilder.Utils
         /// <param name="type">The script type to load labels for.</param>
         /// <returns>A collection of loaded script labels and their associated content.</returns>
         /// <exception cref="Exception">Thrown when the script file for the specified type is missing or invalid.</exception>
-        public TypedOrderedDictionary PreloadAllScripts()
+        public OrderedDictionary<string, LoadedLabel> PreloadAllScripts(string fileKey = "Script")
         {
-            var labels = new TypedOrderedDictionary();
-            if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+            fileKey = ResolveFileKey(fileKey);
+            var labels = new OrderedDictionary<string, LoadedLabel>();
+            if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
             {
                 DialogBox.Show(
                     $"Something has gone wrong while building script label data!\n\n{filePath}",
@@ -642,7 +587,7 @@ namespace MonoBuilder.Utils
                 string baseline = DetectBaseline(innerContent);
 
                 string label = string.Empty;
-                var labelContent = new LoadedLabel(label, new StringBuilder(), 0, false, true);
+                var labelContent = new LoadedLabel(label, new StringBuilder(), 0, false, true, fileKey);
                 var endLabelTag = ContentGuides[TypeLabel][1];
                 int index = 0;
 
@@ -655,7 +600,7 @@ namespace MonoBuilder.Utils
                     if (labelRes.Success)
                     {
                         label = labelRes.Groups["label"].Value;
-                        labelContent = new LoadedLabel(label, new StringBuilder(), 0, false, true);
+                        labelContent = new LoadedLabel(label, new StringBuilder(), 0, false, true, fileKey);
                         baseline = DetectBaseline(innerContent, index + 1);
 
                         if (label == string.Empty)
@@ -675,9 +620,9 @@ namespace MonoBuilder.Utils
                         if (isEndLabel)
                         {
                             labelContent.WordCount = CountWords(labelContent.Content?.ToString() ?? "");
-                            if (LabelExists(label))
+                            if (LabelExists(label, fileKey))
                             {
-                                SyncedLabels.TryGetValue(label, out var existingLabel);
+                                SyncedLabels.TryGetValue(fileKey, label, out var existingLabel);
                                 var stringifiedSyncedLabel = existingLabel?.Content?.ToString() ?? string.Empty;
                                 var stringifiedUnsyncedLabel = labelContent.Content?.ToString() ?? string.Empty;
                                 if (stringifiedSyncedLabel == stringifiedUnsyncedLabel)
@@ -717,24 +662,29 @@ namespace MonoBuilder.Utils
 
         public void CheckSynchronicity(bool showMessage = true)
         {
-            List<string> labels = SyncedLabels.Keys.ToList();
-            var existingLabels = ScriptLabelExists(labels);
-            var existingScripts = ScriptContentMatches(labels);
-
             bool labelsHaveChanged = false;
-            foreach (string label in labels)
+
+            foreach (string fileKey in SyncedLabels.FileKeys)
             {
-                if (SyncedLabels.TryGetValue(label, out LoadedLabel? content) && content != null)
+                List<string> labels = SyncedLabels.GetKeys(fileKey).ToList();
+                if (labels.Count == 0)
+                    continue;
+
+                var existingLabels = ScriptLabelExists(labels, fileKey);
+                var existingScripts = ScriptContentMatches(labels, fileKey);
+
+                foreach (string label in labels)
                 {
-                    existingLabels.TryGetValue(label, out bool inScript);
-                    existingScripts.TryGetValue(label, out bool synced);
-                    var originalValue = content.InScript;
-
-                    content.InScript = inScript && synced;
-
-                    if (originalValue != content.InScript)
+                    if (SyncedLabels.TryGetValue(fileKey, label, out LoadedLabel? content) && content != null)
                     {
-                        labelsHaveChanged = true;
+                        existingLabels.TryGetValue(label, out bool inScript);
+                        existingScripts.TryGetValue(label, out bool synced);
+                        var originalValue = content.InScript;
+
+                        content.InScript = inScript && synced;
+
+                        if (originalValue != content.InScript)
+                            labelsHaveChanged = true;
                     }
                 }
             }
@@ -758,11 +708,12 @@ namespace MonoBuilder.Utils
         /// <param name="label">The label to associate with the script content.</param>
         /// <param name="content">The script content to add.</param>
         /// <exception cref="Exception">Thrown when file data is invalid or an error occurs during the append operation.</exception>
-        public void AddToScript(string label, string content)
+        public void AddToScript(string label, string content, string fileKey = "Script")
         {
+            fileKey = ResolveFileKey(fileKey);
             if (label.Length > 0 && content.Length > 0)
             {
-                if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+                if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
                 {
                     DialogBox.Show(
                         $"Something has gone wrong while attempting to add new script label data!\n\nPath: {filePath}",
@@ -790,7 +741,7 @@ namespace MonoBuilder.Utils
                         File.WriteAllLines(tempPath, lines);
                         File.Replace(tempPath, filePath, filePath + ".bak");
 
-                        SyncedLabels.TryGetValue(label, out var labelExists);
+                        SyncedLabels.TryGetValue(fileKey, label, out var labelExists);
                         if (labelExists != null)
                         {
                             labelExists.InScript = true;
@@ -799,7 +750,7 @@ namespace MonoBuilder.Utils
                         else
                         {
                             var deformattedContent = StripLabelTags(DeformatFromScript(content));
-                            Dangerous_ForceSaveToProgram(label, deformattedContent);
+                            Dangerous_ForceSaveToProgram(label, deformattedContent, fileKey);
                         }
                     }
                     else
@@ -814,7 +765,7 @@ namespace MonoBuilder.Utils
                             File.WriteAllLines(tempPath, lines);
                             File.Replace(tempPath, filePath, filePath + ".bak");
 
-                            SyncedLabels.TryGetValue(label, out var labelExists2);
+                            SyncedLabels.TryGetValue(fileKey, label, out var labelExists2);
                             if (labelExists2 != null)
                             {
                                 labelExists2.InScript = true;
@@ -823,7 +774,7 @@ namespace MonoBuilder.Utils
                             else
                             {
                                 var deformattedContent = StripLabelTags(DeformatFromScript(content));
-                                Dangerous_ForceSaveToProgram(label, deformattedContent);
+                                Dangerous_ForceSaveToProgram(label, deformattedContent, fileKey);
                             }
                         }
                         else
@@ -866,11 +817,12 @@ namespace MonoBuilder.Utils
         /// <param name="label">The label identifying the script section to merge.</param>
         /// <param name="content">The new content to merge for the specified label.</param>
         /// <exception cref="Exception">Thrown when the script file cannot be found or an error occurs during the merge process.</exception>
-        public void MergeWithScript(string label, string content)
+        public void MergeWithScript(string label, string content, string fileKey = "Script")
         {
+            fileKey = ResolveFileKey(fileKey);
             if (label.Length > 0 && content.Length > 0)
             {
-                if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+                if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
                 {
                     DialogBox.Show(
                         $"Something has gone wrong while attempting to merge script label data for \"{label}\"!\n\nPath: {filePath}",
@@ -946,12 +898,13 @@ namespace MonoBuilder.Utils
         /// <param name="label">The label identifying the script data to remove.</param>
         /// <param name="save">true to save changes after removal; otherwise, false.</param>
         /// <exception cref="Exception">Thrown when the label is invalid, file data is incorrect, or an error occurs during removal.</exception>
-        public void RemoveFromScript(string label, bool save)
+        public void RemoveFromScript(string label, bool save, string fileKey = "Script")
         {
-            SyncedLabels.TryGetValue(label, out var labelExists);
+            fileKey = ResolveFileKey(fileKey);
+            SyncedLabels.TryGetValue(fileKey, label, out var labelExists);
             if (labelExists != null)
             {
-                if (!Files.TryGetValue(Type, out string? filePath) || filePath == null)
+                if (!Files.TryGetValue(fileKey, out string? filePath) || filePath == null)
                 {
                     DialogBox.Show(
                         $"Something has gone wrong while attempting to remove script label data!\n\nPath: {filePath ?? "null"}",
@@ -1044,13 +997,14 @@ namespace MonoBuilder.Utils
         /// <param name="label">The label identifying the script to save.</param>
         /// <param name="content">The script content associated with the label.</param>
         /// <exception cref="Exception">Thrown when an error occurs while saving the label.</exception>
-        public void SaveToProgram(string label, string content)
+        public void SaveToProgram(string label, string content, string fileKey = "Script")
         {
+            fileKey = ResolveFileKey(fileKey);
             if (label.Length > 0 && content.Length > 0)
             {
                 try
                 {
-                    SyncedLabels.TryGetValue(label, out var labelExists);
+                    SyncedLabels.TryGetValue(fileKey, label, out var labelExists);
                     if (labelExists != null)
                     {
                         var warning = DialogBox.Show(
@@ -1059,9 +1013,9 @@ namespace MonoBuilder.Utils
                             DialogButtonDefaults.YesNo,
                             DialogIcon.Warning);
 
-                        if (warning == DialogResult.Yes)
+                        if (warning == DialogBoxResult.Yes)
                         {
-                            SyncedLabels[label] = new LoadedLabel(label, new StringBuilder(content), CountWords(content), true, false);
+                            SyncedLabels.Upsert(fileKey, new LoadedLabel(label, new StringBuilder(content), CountWords(content), true, false, fileKey));
                             SaveProgram();
                         }
                         return;
@@ -1073,9 +1027,9 @@ namespace MonoBuilder.Utils
                         DialogButtonDefaults.YesNo,
                         DialogIcon.Question);
 
-                    if (question == DialogResult.Yes)
+                    if (question == DialogBoxResult.Yes)
                     {
-                        SyncedLabels[label] = new LoadedLabel(label, new StringBuilder(content), CountWords(content), true, false);
+                        SyncedLabels.Upsert(fileKey, new LoadedLabel(label, new StringBuilder(content), CountWords(content), true, false, fileKey));
                         SaveProgram();
                     }
                 }
@@ -1107,11 +1061,12 @@ namespace MonoBuilder.Utils
         /// <param name="label">The label identifier to save.</param>
         /// <param name="content">The content associated with the label.</param>
         /// <exception cref="Exception">Thrown when saving the label fails.</exception>
-        public void Dangerous_ForceSaveToProgram(string label, string content)
+        public void Dangerous_ForceSaveToProgram(string label, string content, string fileKey = "Script")
         {
+            fileKey = ResolveFileKey(fileKey);
             try
             {
-                SyncedLabels[label] = new LoadedLabel(label, new StringBuilder(content), CountWords(content), true, true);
+                SyncedLabels.Upsert(fileKey, new LoadedLabel(label, new StringBuilder(content), CountWords(content), true, true, fileKey));
                 SaveProgram();
             }
             catch (Exception error)
@@ -1130,13 +1085,11 @@ namespace MonoBuilder.Utils
         /// </summary>
         /// <param name="label">The label to remove from the program.</param>
         /// <param name="save">true to save the program after removing the label; otherwise, false.</param>
-        public void RemoveFromProgram(string label, bool save = false)
+        public void RemoveFromProgram(string label, bool save = false, string fileKey = "Script")
         {
-            if (SyncedLabels.ContainsKey(label))
-            {
-                SyncedLabels.Remove(label);
-                if (save) SaveProgram();
-            }
+            fileKey = ResolveFileKey(fileKey);
+            if (SyncedLabels.Remove(fileKey, label) && save)
+                SaveProgram();
         }
         #endregion
 
@@ -1162,17 +1115,19 @@ namespace MonoBuilder.Utils
             try
             {
                 var doc = XDocument.Load("data/content/scripts.xml");
-                SyncedLabels = new TypedOrderedDictionary();
+                SyncedLabels.Clear();
                 foreach (var el in doc.Descendants("Label"))
                 {
                     var name = el.Attribute("Name")?.Value ?? string.Empty;
-                    SyncedLabels[name] = new LoadedLabel(
+                    var fileKey = el.Attribute("FileKey")?.Value ?? Type;
+                    SyncedLabels.Upsert(fileKey, new LoadedLabel(
                         name,
                         new StringBuilder(el.Value),
                         int.TryParse(el.Attribute("WordCount")?.Value, out int wc) ? wc : 0,
                         bool.TryParse(el.Attribute("Synced")?.Value, out bool synced) && synced,
-                        bool.TryParse(el.Attribute("InScript")?.Value, out bool inScript) && inScript
-                    );
+                        bool.TryParse(el.Attribute("InScript")?.Value, out bool inScript) && inScript,
+                        fileKey
+                    ));
                 }
             }
             catch (Exception error)
@@ -1192,17 +1147,15 @@ namespace MonoBuilder.Utils
         /// content.</remarks>
         public void SaveProgram()
         {
-            XElement[] xElements = new XElement[SyncedLabels.Count];
-            int index = 0;
-            foreach (LoadedLabel l in SyncedLabels.Values)
-            {
-                xElements[index++] = new XElement("Label",
-                    new XAttribute("Name", l.Name),
-                    new XAttribute("WordCount", l.WordCount),
-                    new XAttribute("Synced", l.Synced),
-                    new XAttribute("InScript", l.InScript),
-                    new XCData(l.Content?.ToString() ?? ""));
-            }
+            var xElements = SyncedLabels.Items
+                .Select(entry => new XElement("Label",
+                    new XAttribute("FileKey", entry.FileKey),
+                    new XAttribute("Name", entry.Name),
+                    new XAttribute("WordCount", entry.WordCount),
+                    new XAttribute("Synced", entry.Synced),
+                    new XAttribute("InScript", entry.InScript),
+                    new XCData(entry.Content?.ToString() ?? "")))
+                .ToArray();
 
             SaveData = new XDocument(
                 new XDeclaration("1.0", "utf-8", "yes"),
@@ -1217,18 +1170,59 @@ namespace MonoBuilder.Utils
     /// <summary>
     /// Represents a label loaded with associated content, word count, and synchronization state.
     /// </summary>
-    public class LoadedLabel
+    public class LoadedLabel : INotifyPropertyChanged, IMultiFile
     {
+        private string _fileKey;
+        private string _name;
+        private StringBuilder? _content;
+        private int _wordCount;
+        private bool _synced;
+        private bool _inScript;
+
+        /// <summary>Gets or sets the file key the label belongs to.</summary>
+        [DisplayName("File")]
+        public string FileKey
+        {
+            get => _fileKey;
+            set => SetField(ref _fileKey, value);
+        }
+
         /// <summary>Gets or sets the name.</summary>
-        public string Name { get; set; }
+        public string Name
+        {
+            get => _name;
+            set => SetField(ref _name, value);
+        }
+
         /// <summary>Gets or sets the content as a mutable string.</summary>
-        public StringBuilder? Content { get; set; }
+        public StringBuilder? Content
+        {
+            get => _content;
+            set => SetField(ref _content, value);
+        }
+
         /// <summary>Gets or sets the number of words.</summary>
-        public int WordCount { get; set; }
+        public int WordCount
+        {
+            get => _wordCount;
+            set => SetField(ref _wordCount, value);
+        }
+
         /// <summary>Gets or sets a value indicating whether the data is synchronized.</summary>
-        public bool Synced { get; set; }
+        public bool Synced
+        {
+            get => _synced;
+            set => SetField(ref _synced, value);
+        }
+
         /// <summary>Gets or sets a value indicating whether the context is within a script block.</summary>
-        public bool InScript { get; set; }
+        public bool InScript
+        {
+            get => _inScript;
+            set => SetField(ref _inScript, value);
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
         /// Initializes a new instance of the LoadedLabel class with the specified name, content, word count,
@@ -1239,13 +1233,24 @@ namespace MonoBuilder.Utils
         /// <param name="words">The number of words in the label.</param>
         /// <param name="synced">true if the label is synchronized; otherwise, false.</param>
         /// <param name="inScript">true if the label is included in the script; otherwise, false.</param>
-        public LoadedLabel(string name, StringBuilder content, int words, bool synced, bool inScript)
+        /// <param name="fileKey">The file key the label belongs to.</param>
+        public LoadedLabel(string name, StringBuilder content, int words, bool synced, bool inScript, string fileKey = "")
         {
-            Name = name;
-            Content = content;
-            WordCount = words;
-            Synced = synced;
-            InScript = inScript;
+            _name = name;
+            _content = content;
+            _wordCount = words;
+            _synced = synced;
+            _inScript = inScript;
+            _fileKey = fileKey;
+        }
+
+        private void SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = "")
+        {
+            if (EqualityComparer<T>.Default.Equals(field, value))
+                return;
+
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 
