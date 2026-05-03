@@ -95,14 +95,14 @@ namespace MonoBuilder.Utils
                         tag != null
                     )
                     {
-                        Normal normalCharcter = new Normal(name, tag, color ?? string.Empty, path ?? string.Empty)
+                        Normal normalCharacter = new Normal(name, tag, color ?? string.Empty, path ?? string.Empty)
                         {
                             EntityID = AllCharacters.Count,
                             FileKey = fileKey,
                             IsSynced = isSynced
                         };
 
-                        AllCharacters.Add(normalCharcter);
+                        AllCharacters.Add(normalCharacter);
                     }
                 }
             }
@@ -404,7 +404,7 @@ namespace MonoBuilder.Utils
             if (files.Count == 0)
             {
                 DialogBox.Show(
-                    "Attempted to check character existance without a proper file path!",
+                    "Attempted to check character existence without a proper file path!",
                     "No File Path",
                     DialogButtonDefaults.OK,
                     DialogIcon.Warning);
@@ -718,7 +718,6 @@ namespace MonoBuilder.Utils
                                 if (result.Success && result.Groups["tag"].Value == character.Tag)
                                 {
                                     isRemoving = true;
-                                    System.Diagnostics.Debug.WriteLine(lastLine);
                                     if (string.IsNullOrEmpty(lastLine))
                                         lastLine = null;
                                 }

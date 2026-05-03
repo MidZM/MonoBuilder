@@ -25,7 +25,7 @@ namespace MonoBuilder.Utils
     {
         private static FileSystemWatcher? Watcher { get; set; }
         private static AppSettings? ApplicationSettings { get; set; }
-        private static ScriptConversion? Converter { get; set; }
+        private static ScriptConversion? ScriptConverter { get; set; }
         private static Characters? CharacterData { get; set; }
         private static MonoImages? ImageData { get; set; }
 
@@ -52,7 +52,7 @@ namespace MonoBuilder.Utils
             {
                 Watcher = watcher;
                 ApplicationSettings = settings;
-                Converter = converter;
+                ScriptConverter = converter;
                 CharacterData = characters;
                 ImageData = images;
 
@@ -115,14 +115,12 @@ namespace MonoBuilder.Utils
 
             if (changed["Script"])
             {
-                System.Diagnostics.Debug.WriteLine("I changed - Script");
                 ShowChangesMadeSettings();
                 ShowChangesMadeLoadLabels();
             }
 
             if (changed["Images"] || changed["Scenes"] || changed["Gallery"])
             {
-                System.Diagnostics.Debug.WriteLine("I changed - Image Assets");
                 ShowChangedMadeImages();
             }
         }
@@ -273,8 +271,8 @@ namespace MonoBuilder.Utils
 					}
 				}
 
-				if (Converter != null &&
-					Converter.CheckIsAutoSyncLabels() &&
+				if (ScriptConverter != null &&
+					ScriptConverter.CheckIsAutoSyncLabels() &&
 					!DialogIsOpen &&
 					(CurrentContext is LoadScripts ||
 					CurrentContext is ScriptBuilder ||
@@ -317,10 +315,8 @@ namespace MonoBuilder.Utils
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                System.Diagnostics.Debug.WriteLine(CurrentContext);
                 if (CurrentContext is ImageBuilder imageBuilder && (AnyFileChanged("Images") || AnyFileChanged("Scenes") || AnyFileChanged("Gallery")))
                 {
-                    System.Diagnostics.Debug.WriteLine("Changes Made");
                     var changedLabel = Helpers.FindVisualChild<Label>(CurrentContext, "ChangesMadeLabel");
                     if (changedLabel != null)
                     {
@@ -450,9 +446,11 @@ namespace MonoBuilder.Utils
                         "Success",
                         DialogButtonDefaults.OK,
                         DialogIcon.Information);
-                    }
+					}
 
-                    _suppressionTimer?.Stop();
+					ScriptConverter!.UnsetCharacterList();
+
+					_suppressionTimer?.Stop();
                     _suppressionTimer?.Start();
                 } catch (Exception error)
                 {

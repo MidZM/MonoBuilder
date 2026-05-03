@@ -16,6 +16,17 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <None Remove="Assets\MonoBuilder.Markdown.xshd" />
+      <None Remove="data\actions.xml" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Resource Include="data\MonoBuilder.Markdown.xshd">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Resource>
+        <Content Include="data\actions.xml">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <Content Include="favicon.ico" />
     </ItemGroup>
 

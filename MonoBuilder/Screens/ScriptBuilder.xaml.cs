@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing.Imaging.Effects;
+using System.IO;
 using System.Reflection.Metadata;
 using System.Runtime.Serialization;
 using System.Text;
@@ -53,7 +54,6 @@ namespace MonoBuilder.Screens
 			ApplicationSettings = settings;
 			ActionUtility = actionHelper;
 
-
 			if (settings.GetAllFilePaths("Script").Count > 0)
 			{
 				Editor = new FileEditor(
@@ -80,13 +80,86 @@ namespace MonoBuilder.Screens
 
 			ScriptInputContainer.SizeChanged += ScriptInputContainer_SizeChanged;
 
+			IntegrateMarkdownHighlighting(); // Contains a self-healing mechanism that restores the file, and any critical folders.
+			BoxesHaveContent();
+		}
+
+		#region Markdown Initialization & Self Healing
+		private void IntegrateMarkdownHighlighting()
+		{
+			try
+			{
+				LoadMarkdownFile();
+			}
+			catch (FileNotFoundException error)
+			{
+				// You have successfuly screwed up...
+				DialogBox.Show(
+					$"Something went wrong while initalizing the syntax highlighting file!\nA new syntax highlighting will attempt to be generated...\n\n{error}",
+					"File Not Found",
+					DialogButtonDefaults.OK,
+					DialogIcon.Warning);
+
+				try
+				{
+					if (!Directory.Exists("data"))
+					{
+						// You have successfuly screwed up even harder...!
+						DialogBox.Show(
+							"The \"data\" folder seems to be missing... The program will attempt to restart to resolve the mising dependency issue first.",
+							"Missing Crtical Folder",
+							DialogButtonDefaults.OK,
+							DialogIcon.Error);
+
+						if (Process.GetCurrentProcess().MainModule != null)
+						{
+							Process.Start(Process.GetCurrentProcess().MainModule!.FileName);
+							Application.Current.Shutdown();
+						}
+						else
+						{
+							// Honestly, how did you even achieve this...?
+							DialogBox.Show(
+								"Mission failed...",
+								"We'll Get Em Next Time...",
+								DialogButtonDefaults.OK,
+								DialogIcon.Error);
+							Application.Current.Shutdown();
+						}
+					}
+
+					Helpers.InitializeMarkdownFile();
+					LoadMarkdownFile();
+
+					// Screw up averted!
+					DialogBox.Show(
+						"File restored successfully!\nThe program will now resume operations...",
+						"Sucess",
+						DialogButtonDefaults.OK,
+						DialogIcon.Information);
+				}
+				catch (Exception err)
+				{
+					// WHAT JUST HAPPENED!?
+					DialogBox.Show(
+						$"Something went wrong!\n\n{err}",
+						"Error",
+						DialogButtonDefaults.OK,
+						DialogIcon.Error);
+				}
+			}
+		}
+
+		private void LoadMarkdownFile()
+		{
+			if (!Directory.Exists("data")) throw new FileNotFoundException("Missing data folder...");
+
 			using (XmlReader reader = XmlReader.Create("data/Monobuilder.Markdown.xshd"))
 			{
 				RawScriptInput.SyntaxHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
 			}
-
-			BoxesHaveContent();
 		}
+		#endregion
 
 		private void ScriptInputContainer_SizeChanged(object sender, SizeChangedEventArgs e)
 		{

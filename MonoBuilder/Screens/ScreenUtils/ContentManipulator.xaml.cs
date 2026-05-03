@@ -386,12 +386,8 @@ namespace MonoBuilder.Screens.ScreenUtils
             int rowKey = RowState.PeekIndex();
             string rowName = $"DynamicRow_{rowKey}";
             RowState.Add(rowName);
-            System.Diagnostics.Debug.WriteLine("--------- Testing Rows ---------");
-            System.Diagnostics.Debug.WriteLine(rowKey);
-            System.Diagnostics.Debug.WriteLine(rowName);
 
             int gridRow = ContentGrid.RowDefinitions.Count;
-            System.Diagnostics.Debug.WriteLine(gridRow);
 
             CreateNewRow(45);
             SetSaveEnableState(false);

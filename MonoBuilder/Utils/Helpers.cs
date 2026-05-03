@@ -163,14 +163,21 @@ namespace MonoBuilder.Utils
             return canScroll;
         }
 
-        public static bool RichHasContent(RichTextBox richTextBox)
-        {
-            if (richTextBox == null || richTextBox.Document == null) return false;
+		public static void InitializeMarkdownFile()
+		{
+			string fileName = "data/MonoBuilder.Markdown.xshd";
+			if (!System.IO.File.Exists(fileName))
+			{
+				string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name ?? "MonoBuilder";
+				var resourceUri = new Uri($"pack://application:,,,/{assemblyName};component/{fileName}");
+				var resourceInfo = Application.GetResourceStream(resourceUri);
 
-            TextRange textRange = new TextRange(richTextBox.Document.ContentStart, richTextBox.Document.ContentEnd);
-
-            return !string.IsNullOrWhiteSpace(textRange.Text);
-        }
+				using (var fileStream = System.IO.File.Create(fileName))
+				{
+					resourceInfo.Stream.CopyTo(fileStream);
+				}
+			}
+		}
 
         public static System.Windows.Media.Brush HexToBrush(string hex)
         {
@@ -271,7 +278,7 @@ namespace MonoBuilder.Utils
 
     public class HexToBrushConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is string hex)
             {
@@ -279,7 +286,7 @@ namespace MonoBuilder.Utils
             }
             return System.Windows.Media.Brushes.Transparent;
         }
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
@@ -287,7 +294,7 @@ namespace MonoBuilder.Utils
 
     public class ShouldLightenText : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is string hex && Helpers.HexValueIsDark(hex))
             {
@@ -296,7 +303,7 @@ namespace MonoBuilder.Utils
             return System.Windows.Media.Brushes.Black;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
@@ -304,7 +311,7 @@ namespace MonoBuilder.Utils
 
     public class ColorSyncedCells : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is Character character && character.IsSynced)
             {
@@ -312,7 +319,7 @@ namespace MonoBuilder.Utils
             }
             return System.Windows.Media.Brushes.MistyRose;
         }
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

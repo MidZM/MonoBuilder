@@ -1099,10 +1099,17 @@ namespace MonoBuilder.Utils
         /// if they do not exist.
         /// </summary>
         /// <remarks>Displays an error dialog if loading fails due to an exception.</remarks>
-        public void LoadProgram()
-        {
-            if (!Directory.Exists("data"))
+        public void LoadProgram([CallerMemberName] string caller = "")
+		{
+			if (!Directory.Exists("data"))
             {
+				// If the caller is ".ctor", it means it was called by the ScriptBuilder's initializer.
+				// There is a self-healing mechanism inside of the initalizer for this situation, so we just defer to that.
+				if (string.Equals(caller, ".ctor", StringComparison.Ordinal))
+				{
+					return;
+				}
+
                 Directory.CreateDirectory("data");
                 Directory.CreateDirectory("data/content");
             }

@@ -201,6 +201,7 @@ namespace MonoBuilder.Screens
 
                 checkbox?.IsChecked = rule.IsEnabled;
                 input?.Text = rule.Pattern.ToString();
+				ScriptConverter.UnsetSortedRules();
             }
         }
 
@@ -339,7 +340,8 @@ namespace MonoBuilder.Screens
                 if (checkbox != null && input != null)
                 {
                     rule.IsEnabled = checkbox.IsChecked == true;
-                    rule.Pattern = new System.Text.RegularExpressions.Regex(input.Text);
+                    rule.Pattern = new Regex(input.Text);
+					ScriptConverter.UnsetSortedRules();
                 }
                 else
                 {
@@ -441,6 +443,7 @@ namespace MonoBuilder.Screens
             }
 
             CharacterData.SaveCharacters();
+			ScriptConverter.UnsetCharacterList();
         }
 
         private Dictionary<string, string> ExtractElements(List<FrameworkElement> control)
@@ -491,9 +494,7 @@ namespace MonoBuilder.Screens
                 if (window.ModifyingContent?.Count > 0)
                 {
                     window.ModifyingContent[index].TryGetValue("Tag", out string? tagValue);
-                    Debug.WriteLine(tagValue);
                     var modifiedCharacter = characters?.FirstOrDefault(c => c.Tag == tagValue);
-                    Debug.WriteLine(modifiedCharacter);
                     if (modifiedCharacter != null)
                     {
                         if (fileKey != null)
@@ -512,7 +513,6 @@ namespace MonoBuilder.Screens
                     }
 
                     CharacterData.AddCharacter(character);
-
                 }
             }
         }
@@ -749,6 +749,7 @@ namespace MonoBuilder.Screens
                 var rule = ScriptConverter.ConversionRules.Find(r => r.Name == ruleName);
                 rule?.IsEnabled = checkbox.IsChecked == true;
                 checkbox.Content = rule?.IsEnabled == true ? "Enabled" : "Disabled";
+				ScriptConverter.UnsetSortedRules();
 
                 ShouldEnableSave(true);
             }
@@ -876,6 +877,7 @@ namespace MonoBuilder.Screens
                     }
 
                     CharacterData.SaveCharacters();
+					ScriptConverter.UnsetCharacterList();
                 }
                 catch (Exception error)
                 {
@@ -1182,6 +1184,8 @@ namespace MonoBuilder.Screens
             {
                 CharacterData.AddCharacter(character);
             }
+
+			ScriptConverter.UnsetCharacterList();
         }
 
         private void SaveCharactersToScript(object sender, RoutedEventArgs e)
@@ -1344,6 +1348,8 @@ namespace MonoBuilder.Screens
                                 character.FileKey = targetFileKey;
                                 CharacterData.UpdateCharacter(character.EntityID, character);
                             }
+
+							ScriptConverter.UnsetCharacterList();
                         }
                         else
                         {
