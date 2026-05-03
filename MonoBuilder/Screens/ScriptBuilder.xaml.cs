@@ -128,7 +128,8 @@ namespace MonoBuilder.Screens
 						}
 					}
 
-					Helpers.InitializeMarkdownFile();
+					string fileName = "data/MonoBuilder.Markdown.xshd";
+					Helpers.GenerateResourceIfMissing(fileName);
 					LoadMarkdownFile();
 
 					// Screw up averted!

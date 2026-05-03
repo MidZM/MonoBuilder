@@ -24,9 +24,9 @@
         <Resource Include="data\MonoBuilder.Markdown.xshd">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Resource>
-        <Content Include="data\actions.xml">
+        <Resource Include="data\actions.xml">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
+        </Resource>
         <Content Include="favicon.ico" />
     </ItemGroup>
 

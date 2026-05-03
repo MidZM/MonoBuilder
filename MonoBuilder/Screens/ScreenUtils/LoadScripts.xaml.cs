@@ -51,7 +51,7 @@ namespace MonoBuilder.Screens.ScreenUtils
             if (settings.GetAllFilePaths("Script").Count == 0)
             {
                 DialogBox.Show(
-                    "A script file has not been specified. Labels cannot be synced or saved.\nTo specify a script file, open the Settings, scroll down, select \"ScriptFile\", locate and load your script file.",
+                    "A script file has not been specified. Labels cannot be synced or saved.\n\nTo specify a script file:\n- Open the Settings and scroll down\n- Select the \"Script\" tab in \"Game Directories\"\n- Click \"Select File\"\n- Locate and load your script file.\n\nNOTE: To select a script file, you must first specify a \"Base Folder\" in the \"General\" tab.",
                     "No script file",
                     DialogButtonDefaults.OK,
                     DialogIcon.Warning

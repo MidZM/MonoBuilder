@@ -163,9 +163,8 @@ namespace MonoBuilder.Utils
             return canScroll;
         }
 
-		public static void InitializeMarkdownFile()
+		public static void GenerateResourceIfMissing(string fileName)
 		{
-			string fileName = "data/MonoBuilder.Markdown.xshd";
 			if (!System.IO.File.Exists(fileName))
 			{
 				string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name ?? "MonoBuilder";
@@ -269,11 +268,30 @@ namespace MonoBuilder.Utils
         }
 
         private bool _value;
+
         public bool Value
         {
             get => _value;
-            set => SetProperty(ref _value, value);
+			set
+			{
+				if (SetProperty(ref _value, value))
+				{
+					OnPropertyChanged(nameof(Inverse));
+				}
+			}
         }
+
+		public bool Inverse
+		{
+			get => !_value;
+			set
+			{
+				if (SetProperty(ref _value, !value))
+				{
+					OnPropertyChanged(nameof(Value));
+				}
+			}
+		}
     }
 
     public class HexToBrushConverter : IValueConverter
