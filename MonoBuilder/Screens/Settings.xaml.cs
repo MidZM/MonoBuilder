@@ -32,12 +32,14 @@ namespace MonoBuilder.Screens
         private AppSettings ApplicationSettings { get; set; }
         private ScriptConversion ScriptConverter { get; set; }
         private bool IsRegexInvalid { get; set; }
-        private string SelectedBasePath { get; set; }
+		private string SelectedBasePath { get; set; }
         private CollectionViewSource? CharacterCollectionView { get; set; }
 
         public ObservableCollection<string> AvailableFiles { get; set; } = new();
         private static readonly Regex GetFileKey = new(@"^\((.+?)\)", RegexOptions.Compiled);
 
+		public ObservableBoolean ScriptFileIsSet { get; set; } = new();
+		public ObservableBoolean AddNewFileShouldEnable { get; set; } = new();
         public ObservableBoolean SaveBtnShouldEnable { get; set; } = new();
 
         public Settings(Characters characters, AppSettings settings, ScriptConversion converter)
@@ -46,6 +48,14 @@ namespace MonoBuilder.Screens
             ApplicationSettings = settings;
             ScriptConverter = converter;
             SelectedBasePath = settings.GetFolderPath("Base") ?? string.Empty;
+
+			// Make sure options are selectable.
+			if (SelectedBasePath != string.Empty)
+				SetAddNewFileShouldEnable(true);
+
+			// Make sure characters can be added and manipulated.
+			if (settings.GetAllFilePaths("Script").Count > 0)
+				SetScriptFileIsSet(true);
 
             InitializeComponent();
             RunSetup();
@@ -59,6 +69,16 @@ namespace MonoBuilder.Screens
         {
             SaveBtnShouldEnable.Value = set;
         }
+
+		private void SetAddNewFileShouldEnable(bool set)
+		{
+			AddNewFileShouldEnable.Value = set;
+		}
+
+		private void SetScriptFileIsSet(bool set)
+		{
+			ScriptFileIsSet.Value = set;
+		}
 
         private void InitializeAvailableFiles()
         {
@@ -525,7 +545,13 @@ namespace MonoBuilder.Screens
             string? result = "...\\" +
                 Path.GetRelativePath(userProfile, folderPath);
 
-            return result;
+			if (isBase)
+			{
+				SelectedBasePath = folderPath;
+				SetAddNewFileShouldEnable(true);
+			}
+
+			return result;
         }
 
         private void CreateNewRow(Grid grid)
@@ -1071,11 +1097,16 @@ namespace MonoBuilder.Screens
                         string filePath = FilePath.FileName;
                         string result = GetRelativePath(filePath, false, baseIsActive);
 
+						if (!ScriptFileIsSet.Value && string.Equals(tagType, "Script:0", StringComparison.Ordinal))
+						{
+							SetScriptFileIsSet(true);
+						}
+
                         input.Text = result;
                         string fileType = tagType ?? string.Empty;
 
                         ApplicationSettings.AddReplaceFilePath(fileType, filePath);
-                        ApplicationSettings.SaveDirectories();
+						ApplicationSettings.SaveDirectories();
 
                         if (fileType.StartsWith("Characters", StringComparison.Ordinal))
                         {

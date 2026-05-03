@@ -9,6 +9,7 @@
     Title="MonoBuilder | Settings"
     Width="825"
     Height="500"
+    MinWidth="675"
     d:DataContext="{d:DesignInstance Type=local:Settings}"
     SizeChanged="Window_SizeChanged"
     Style="{StaticResource WindowStyle}"
@@ -26,6 +27,7 @@
         <utils:HexToBrushConverter x:Key="HexToBrushConverter" />
         <utils:ShouldLightenText x:Key="ShouldLightenText" />
         <utils:ColorSyncedCells x:Key="ColorSyncedCells" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -50,7 +52,7 @@
                             DockPanel.Dock="Top" />
                         <TabControl
                             x:Name="CharacterFilterTabs"
-                            Margin="10,0,10,0"
+                            Margin="6,0,6,0"
                             Background="#111111"
                             BorderBrush="Maroon"
                             DockPanel.Dock="Top"
@@ -60,6 +62,7 @@
                             Width="782"
                             Height="250"
                             MaxWidth="1230"
+                            Margin="10,0,10,0"
                             AutoGenerateColumns="False"
                             CanUserAddRows="False"
                             CanUserDeleteRows="False"
@@ -170,6 +173,16 @@
                                     Header="Directory" />
                             </DataGrid.Columns>
                         </DataGrid>
+                        <TextBlock
+                            Margin="10,5,10,0"
+                            HorizontalAlignment="Center"
+                            DockPanel.Dock="Top"
+                            FontSize="15"
+                            FontWeight="Bold"
+                            Text="At Least 1 Script File Must be Selected Before Characters Can be Added or Imported..."
+                            TextDecorations="Underline"
+                            TextWrapping="Wrap"
+                            Visibility="{Binding ScriptFileIsSet.Inverse, Converter={StaticResource BoolToVis}}" />
                         <Grid
                             x:Name="ButtonsGrid"
                             Height="100"
@@ -190,6 +203,7 @@
                                 Grid.Column="0"
                                 Click="BtnAddCharacter_Click"
                                 Content="Add Character"
+                                IsEnabled="{Binding ScriptFileIsSet.Value}"
                                 Style="{StaticResource DefaultButton}" />
                             <Button
                                 x:Name="BtnModifyCharacter"
@@ -344,7 +358,7 @@
                                             Grid.Column="0"
                                             Margin="0"
                                             VerticalAlignment="Center"
-                                            Content="Images Folder" />
+                                            Content="Image Assets Folder" />
                                         <Button
                                             x:Name="ImagesFolderButton"
                                             Grid.Row="0"
@@ -383,7 +397,7 @@
                                             Grid.Column="0"
                                             Margin="0"
                                             VerticalAlignment="Center"
-                                            Content="Scenes Folder" />
+                                            Content="Scene Assets Folder" />
                                         <Button
                                             x:Name="ScenesFolderButton"
                                             Grid.Row="0"
@@ -422,7 +436,7 @@
                                             Grid.Column="0"
                                             Margin="0"
                                             VerticalAlignment="Center"
-                                            Content="Gallery Folder" />
+                                            Content="Gallery Assets Folder" />
                                         <Button
                                             x:Name="GalleryFolderButton"
                                             Grid.Row="0"
@@ -448,6 +462,11 @@
                             </TabItem>
                             <TabItem x:Name="CharactersTab" Header="Characters">
                                 <DockPanel>
+                                    <Label
+                                        HorizontalAlignment="Left"
+                                        Content="A Base Folder Must be Selected..."
+                                        DockPanel.Dock="Top"
+                                        Visibility="{Binding AddNewFileShouldEnable.Inverse, Converter={StaticResource BoolToVis}}" />
                                     <Button
                                         x:Name="BtnAddCharactersFile"
                                         Height="40"
@@ -457,6 +476,7 @@
                                         Click="BtnAddFileLine_Click"
                                         Content="Add New File"
                                         DockPanel.Dock="Top"
+                                        IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                         Style="{StaticResource DefaultButton}" />
                                     <Grid
                                         x:Name="CharactersFileContainer"
@@ -488,12 +508,18 @@
                                             HorizontalAlignment="Right"
                                             Click="SelectFile"
                                             Content="Select File"
+                                            IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                             Style="{StaticResource DefaultButton}" />
                                     </Grid>
                                 </DockPanel>
                             </TabItem>
                             <TabItem x:Name="ScriptTab" Header="Script">
                                 <DockPanel>
+                                    <Label
+                                        HorizontalAlignment="Left"
+                                        Content="A Base Folder Must be Selected..."
+                                        DockPanel.Dock="Top"
+                                        Visibility="{Binding AddNewFileShouldEnable.Inverse, Converter={StaticResource BoolToVis}}" />
                                     <Button
                                         x:Name="BtnAddScriptFile"
                                         Height="40"
@@ -503,6 +529,7 @@
                                         Click="BtnAddFileLine_Click"
                                         Content="Add New File"
                                         DockPanel.Dock="Top"
+                                        IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                         Style="{StaticResource DefaultButton}" />
                                     <Grid
                                         x:Name="ScriptFileContainer"
@@ -534,12 +561,18 @@
                                             HorizontalAlignment="Right"
                                             Click="SelectFile"
                                             Content="Select File"
+                                            IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                             Style="{StaticResource DefaultButton}" />
                                     </Grid>
                                 </DockPanel>
                             </TabItem>
                             <TabItem x:Name="ImagesTab" Header="Images">
                                 <DockPanel>
+                                    <Label
+                                        HorizontalAlignment="Left"
+                                        Content="A Base Folder Must be Selected..."
+                                        DockPanel.Dock="Top"
+                                        Visibility="{Binding AddNewFileShouldEnable.Inverse, Converter={StaticResource BoolToVis}}" />
                                     <Button
                                         x:Name="BtnAddImagesFile"
                                         Height="40"
@@ -549,6 +582,7 @@
                                         Click="BtnAddFileLine_Click"
                                         Content="Add New File"
                                         DockPanel.Dock="Top"
+                                        IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                         Style="{StaticResource DefaultButton}" />
                                     <Grid
                                         x:Name="ImagesFileContainer"
@@ -580,12 +614,18 @@
                                             HorizontalAlignment="Right"
                                             Click="SelectFile"
                                             Content="Select File"
+                                            IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                             Style="{StaticResource DefaultButton}" />
                                     </Grid>
                                 </DockPanel>
                             </TabItem>
                             <TabItem x:Name="ScenesTab" Header="Scenes">
                                 <DockPanel>
+                                    <Label
+                                        HorizontalAlignment="Left"
+                                        Content="A Base Folder Must be Selected..."
+                                        DockPanel.Dock="Top"
+                                        Visibility="{Binding AddNewFileShouldEnable.Inverse, Converter={StaticResource BoolToVis}}" />
                                     <Button
                                         x:Name="BtnAddScenesFile"
                                         Height="40"
@@ -595,6 +635,7 @@
                                         Click="BtnAddFileLine_Click"
                                         Content="Add New File"
                                         DockPanel.Dock="Top"
+                                        IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                         Style="{StaticResource DefaultButton}" />
                                     <Grid
                                         x:Name="ScenesFileContainer"
@@ -626,12 +667,18 @@
                                             HorizontalAlignment="Right"
                                             Click="SelectFile"
                                             Content="Select File"
+                                            IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                             Style="{StaticResource DefaultButton}" />
                                     </Grid>
                                 </DockPanel>
                             </TabItem>
                             <TabItem x:Name="GalleryTab" Header="Gallery">
                                 <DockPanel>
+                                    <Label
+                                        HorizontalAlignment="Left"
+                                        Content="A Base Folder Must be Selected..."
+                                        DockPanel.Dock="Top"
+                                        Visibility="{Binding AddNewFileShouldEnable.Inverse, Converter={StaticResource BoolToVis}}" />
                                     <Button
                                         x:Name="BtnAddGalleryFile"
                                         Height="40"
@@ -641,6 +688,7 @@
                                         Click="BtnAddFileLine_Click"
                                         Content="Add New File"
                                         DockPanel.Dock="Top"
+                                        IsEnabled="{Binding AddNewFileShouldEnable.Value}"
                                         Style="{StaticResource DefaultButton}" />
                                     <Grid
                                         x:Name="GalleryFileContainer"
