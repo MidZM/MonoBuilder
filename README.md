@@ -9,7 +9,8 @@ MonoBuilder is a graphical interface development tool designed and developed to 
 # Installation
 - Download a release from the "Releases" section of the GitHub repository. (Preferably the latest release)
 - Extract the contents to a location that is easily remembered. (And can be deleted in favor of a new version in the future)
-- Run the "Setup.exe"
+- For version 0.1.0 Only: Run the "Setup.exe"
+- Run the .exe
 - Enjoy your new level of productivity!
 
 ## Features
