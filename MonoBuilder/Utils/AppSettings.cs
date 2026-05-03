@@ -1,6 +1,8 @@
 ﻿using MonoBuilder.Screens.ScreenUtils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,14 +14,19 @@ namespace MonoBuilder.Utils
     public class AppSettings
     {
         /// <summary>Gets or sets a collection of file links.</summary>
-        private Dictionary<string, string> Files { get; set; } = new Dictionary<string, string>();
+        private OrderedDictionary<string, string> Files { get; set; } = new();
         /// <summary>Gets or sets the collection of folder links.</summary>
-        private Dictionary<string, string> Folders { get; set; } = new Dictionary<string, string>();
+        private OrderedDictionary<string, string> Folders { get; set; } = new();
 
         /// <summary>Gets or sets a collection mapping keys to file names.</summary>
-        private Dictionary<string, string> FileNames { get; set; } = new Dictionary<string, string>();
+        private OrderedDictionary<string, string> FileNames { get; set; } = new();
         /// <summary>Gets or sets a collection of folder names mapped by key.</summary>
-        private Dictionary<string, string> FolderNames { get; set; } = new Dictionary<string, string>();
+        private OrderedDictionary<string, string> FolderNames { get; set; } = new();
+
+		private Dictionary<string, Dictionary<string, string>>? _fileNameCache;
+		private Dictionary<string, Dictionary<string, string>>? _folderNameCache;
+		private Dictionary<string, Dictionary<string, string>>? _filePathCache;
+		private Dictionary<string, Dictionary<string, string>>? _folderPathCache;
 
         /// <summary>Gets or sets script configuration settings as key-value pairs.</summary>
         private Dictionary<string, object> ScriptSettings { get; set; } = new Dictionary<string, object>
@@ -63,25 +70,36 @@ namespace MonoBuilder.Utils
                 var fileDescendants = Data.Descendants("File");
                 var folderDescendants = Data.Descendants("Folder");
 
-                Files = fileDescendants.ToDictionary(
-                        a => a.Attribute("Key")?.Value ?? "Unknown",
-                        a => a.Attribute("Value")?.Value ?? string.Empty
-                    );
+                foreach (var file in fileDescendants)
+                {
+                    string? key = file.Attribute("Key")?.Value;
+                    string? value = file.Attribute("Value")?.Value;
+                    string? fileName = file.Attribute("FileName")?.Value;
+                    if (key != null && value != null)
+                    {
+                        Files[key] = value;
+                    }
 
-                FileNames = fileDescendants.ToDictionary(
-                        a => a.Attribute("Key")?.Value ?? "Unknown",
-                        a => a.Attribute("FileName")?.Value ?? string.Empty
-                    );
+                    if (key != null && fileName != null)
+                    {
+                        FileNames[key] = fileName;
+                    }
+                }
 
-                Folders = folderDescendants.ToDictionary(
-                        a => a.Attribute("Key")?.Value ?? "Unknown",
-                        a => a.Attribute("Value")?.Value ?? string.Empty
-                    );
-
-                FolderNames = folderDescendants.ToDictionary(
-                        a => a.Attribute("Key")?.Value ?? "Unknown",
-                        a => a.Attribute("FolderName")?.Value ?? string.Empty
-                    );
+                foreach (var file in folderDescendants)
+                {
+                    string? key = file.Attribute("Key")?.Value;
+                    string? value = file.Attribute("Value")?.Value;
+                    string? folderName = file.Attribute("FolderName")?.Value;
+                    if (key != null && value != null)
+                    {
+                        Folders[key] = value;
+                    }
+                    if (key != null && folderName != null)
+                    {
+                        FolderNames[key] = folderName;
+                    }
+                }
 
                 var descendents = Data.Descendants("ScriptSetting").ToList();
                 foreach (XElement setting in descendents)
@@ -109,6 +127,11 @@ namespace MonoBuilder.Utils
                             break;
                     }
                 }
+
+				RebuildFileNameCache();
+				RebuildFilePathCache();
+				RebuildFolderNameCache();
+				RebuildFolderPathCache();
             }
             catch (FileNotFoundException error)
             {
@@ -150,10 +173,7 @@ namespace MonoBuilder.Utils
                         Files.Select(f => new XElement("File",
                             new XAttribute("Key", f.Key),
                             new XAttribute("Value", f.Value),
-                            new XAttribute("FileName", f.Value
-                                .Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
-                                .TakeLast(1)
-                                .FirstOrDefault() ?? string.Empty)
+                            new XAttribute("FileName", Path.GetFileName(f.Value))
                         ))
                     ),
                     new XElement("Folders",
@@ -180,14 +200,24 @@ namespace MonoBuilder.Utils
         #endregion
 
         #region Directory Methods
+		private void RebuildFileNameCache()
+		{
+			_fileNameCache = FileNames
+				.GroupBy(e => e.Key.Split(':')[0])
+				.ToDictionary(
+					g => g.Key,
+					g => g.ToDictionary(e => e.Key, e => e.Value));
+		}
+
         /// <summary>
         /// Adds a file path to the collection or replaces the existing entry for the specified key.
         /// </summary>
-        /// <param name="key">The key associated with the file path.</param>
+        /// <param name="fileName">The key associated with the file path.</param>
         /// <param name="path">The file path to add or replace.</param>
-        public void AddReplaceFile(string key, string path)
+        public void AddReplaceFile(string fileName, string path)
         {
-            FileNames[key] = path;
+            FileNames[fileName] = path;
+			RebuildFileNameCache();
         }
 
         /// <summary>
@@ -197,16 +227,40 @@ namespace MonoBuilder.Utils
         /// <returns>true if the file was successfully removed; otherwise, false.</returns>
         public bool RemoveFile(string key)
         {
-            return FileNames.Remove(key);
+			var didRemove = FileNames.Remove(key);
+			if (didRemove)
+			{
+				RebuildFileNameCache();
+			}
+
+			return didRemove;
+        }
+
+        public bool RemoveFile(string type, int id)
+        {
+			var didRemove = FileNames.Remove($"{type}:{id}");
+			if (didRemove)
+			{
+				RebuildFileNameCache();
+			}
+
+			return didRemove;
         }
 
         /// <summary>
         /// Retrieves all file names and their corresponding paths.
         /// </summary>
         /// <returns>A dictionary containing file names as keys and their paths as values.</returns>
-        public Dictionary<string, string> GetAllFiles()
+        public OrderedDictionary<string, string> GetAllFiles()
         {
             return FileNames;
+        }
+
+        public Dictionary<string, string> GetAllFiles(string type)
+        {
+			return _fileNameCache != null && _fileNameCache.TryGetValue(type, out var files)
+				? files
+				: [];
         }
 
         /// <summary>
@@ -219,15 +273,38 @@ namespace MonoBuilder.Utils
             return FileNames.TryGetValue(key, out string? value) && value != string.Empty ? value : null;
         }
 
-        /// <summary>
-        /// Adds or replaces a file path associated with the specified key.
-        /// </summary>
-        /// <param name="key">The key identifying the file path.</param>
-        /// <param name="path">The file path to associate with the key.</param>
-        public void AddReplaceFilePath(string key, string path)
+        public string? GetFile(string type, int id)
+        {
+            return FileNames.TryGetValue($"{type}:{id}", out string? value) && value != string.Empty ? value : null;
+		}
+
+		private void RebuildFilePathCache()
+		{
+			_filePathCache = Files
+				.GroupBy(e => e.Key.Split(':')[0])
+				.ToDictionary(
+					g => g.Key,
+					g => g.ToDictionary(e => e.Key, e => e.Value));
+		}
+
+		/// <summary>
+		/// Adds or replaces a file path associated with the specified key.
+		/// </summary>
+		/// <param name="key">The key identifying the file path.</param>
+		/// <param name="path">The file path to associate with the key.</param>
+		public void AddReplaceFilePath(string key, string path)
         {
             Files[key] = path;
+			AddReplaceFile(Path.GetFileName(path), path);
+			RebuildFilePathCache();
         }
+
+        public void AddReplaceFilePath(string type, int id, string path)
+        {
+            Files[$"{type}:{id}"] = path;
+			AddReplaceFile(Path.GetFileName(path), path);
+			RebuildFilePathCache();
+		}
 
         /// <summary>
         /// Removes the file path associated with the specified key.
@@ -236,16 +313,44 @@ namespace MonoBuilder.Utils
         /// <returns>true if the file path was successfully removed; otherwise, false.</returns>
         public bool RemoveFilePath(string key)
         {
-            return Files.Remove(key);
+			var didRemove = Files.Remove(key);
+			if (didRemove)
+			{
+				RemoveFile(key);
+				RebuildFilePathCache();
+			}
+
+			return didRemove;
+        }
+
+        public bool RemoveFilePath(string type, int id)
+        {
+            string removalKey = $"{type}:{id}";
+            bool didRemove = Files.Remove(removalKey);
+
+            if (didRemove)
+            {
+                RemoveFile(removalKey);
+				RebuildFilePathCache();
+            }
+
+            return didRemove;
         }
 
         /// <summary>
         /// Retrieves all file paths and their associated values.
         /// </summary>
         /// <returns>A dictionary containing file paths as keys and their corresponding values.</returns>
-        public Dictionary<string, string> GetAllFilePaths()
+        public OrderedDictionary<string, string> GetAllFilePaths()
         {
             return Files;
+        }
+
+        public Dictionary<string, string> GetAllFilePaths(string type)
+        {
+			return _filePathCache != null && _filePathCache.TryGetValue(type, out var paths)
+				? paths
+				: [];
         }
 
         /// <summary>
@@ -258,14 +363,29 @@ namespace MonoBuilder.Utils
             return Files.TryGetValue(key, out string? value) && value != string.Empty ? value : null;
         }
 
-        /// <summary>
-        /// Adds or replaces a folder mapping with the specified key and value.
-        /// </summary>
-        /// <param name="key">The key identifying the folder mapping.</param>
-        /// <param name="value">The folder path to associate with the key.</param>
-        public void AddReplaceFolder(string key, string value)
+        public string? GetFilePath(string type, int id)
         {
-            FolderNames[key] = value;
+            return Files.TryGetValue($"{type}:{id}", out string? value) && value != string.Empty ? value : null;
+		}
+
+		private void RebuildFolderNameCache()
+		{
+			_folderNameCache = FolderNames
+				.GroupBy(e => e.Key.Split(':')[0])
+				.ToDictionary(
+					g => g.Key,
+					g => g.ToDictionary(e => e.Key, e => e.Value));
+		}
+
+		/// <summary>
+		/// Adds or replaces a folder mapping with the specified key and value.
+		/// </summary>
+		/// <param name="folderName">The key identifying the folder mapping.</param>
+		/// <param name="value">The folder path to associate with the key.</param>
+		public void AddReplaceFolder(string folderName, string value)
+        {
+            FolderNames[folderName] = value;
+			RebuildFolderNameCache();
         }
 
         /// <summary>
@@ -275,16 +395,40 @@ namespace MonoBuilder.Utils
         /// <returns>true if the folder was successfully removed; otherwise, false.</returns>
         public bool RemoveFolder(string key)
         {
-            return FolderNames.Remove(key);
+			var didRemove = FolderNames.Remove(key);
+			if (didRemove)
+			{
+				RebuildFolderNameCache();
+			}
+
+			return didRemove;
+        }
+
+        public bool RemoveFolder(string type, int id)
+        {
+			var didRemove = FolderNames.Remove($"{type}:{id}");
+			if (didRemove)
+			{
+				RebuildFolderNameCache();
+			}
+
+			return didRemove;
         }
 
         /// <summary>
         /// Retrieves a dictionary containing all folder names and their corresponding values.
         /// </summary>
         /// <returns>A dictionary mapping folder names to their associated values.</returns>
-        public Dictionary<string, string> GetAllFolders()
+        public OrderedDictionary<string, string> GetAllFolders()
         {
             return FolderNames;
+        }
+
+        public Dictionary<string, string> GetAllFolders(string type)
+        {
+			return _folderNameCache != null && _folderNameCache.TryGetValue(type, out var folders)
+				? folders
+				: [];
         }
 
         /// <summary>
@@ -297,14 +441,37 @@ namespace MonoBuilder.Utils
             return FolderNames.TryGetValue(key, out string? value) && value != string.Empty ? value : null;
         }
 
-        /// <summary>
-        /// Adds a folder path with the specified key or replaces the existing path for the key.
-        /// </summary>
-        /// <param name="key">The unique key associated with the folder path.</param>
-        /// <param name="path">The folder path to add or replace.</param>
-        public void AddReplaceFolderPath(string key, string path)
+        public string? GetFolder(string type, int id)
+        {
+            return FolderNames.TryGetValue($"{type}:{id}", out string? value) && value != string.Empty ? value : null;
+		}
+
+		private void RebuildFolderPathCache()
+		{
+			_folderPathCache = Folders
+				.GroupBy(e => e.Key.Split(':')[0])
+				.ToDictionary(
+					g => g.Key,
+					g => g.ToDictionary(e => e.Key, e => e.Value));
+		}
+
+		/// <summary>
+		/// Adds a folder path with the specified key or replaces the existing path for the key.
+		/// </summary>
+		/// <param name="key">The unique key associated with the folder path.</param>
+		/// <param name="path">The folder path to add or replace.</param>
+		public void AddReplaceFolderPath(string key, string path)
         {
             Folders[key] = path;
+			AddReplaceFile(Path.GetFileName(path), path);
+			RebuildFolderPathCache();
+        }
+
+        public void AddReplaceFolderPath(string type, int id, string path)
+        {
+            Folders[$"{type}:{id}"] = path;
+			AddReplaceFile(Path.GetFileName(path), path);
+			RebuildFolderPathCache();
         }
 
         /// <summary>
@@ -314,16 +481,44 @@ namespace MonoBuilder.Utils
         /// <returns>true if the folder path was successfully removed; otherwise, false.</returns>
         public bool RemoveFolderPath(string key)
         {
-            return Folders.Remove(key);
+			var didRemove = Folders.Remove(key); ;
+			if (didRemove)
+			{
+				RemoveFolder(key);
+				RebuildFolderPathCache();
+			}
+
+			return didRemove;
+        }
+
+        public bool RemoveFolderPath(string type, int id)
+        {
+            string removalKey = $"{type}:{id}";
+            bool didRemove = Folders.Remove(removalKey);
+
+            if (didRemove)
+            {
+                RemoveFolder(removalKey);
+				RebuildFolderPathCache();
+            }
+
+            return didRemove;
         }
 
         /// <summary>
         /// Retrieves all folder paths as key-value pairs.
         /// </summary>
         /// <returns>A dictionary containing folder names and their corresponding paths.</returns>
-        public Dictionary<string, string> GetAllFolderPaths()
+        public OrderedDictionary<string, string> GetAllFolderPaths()
         {
             return Folders;
+        }
+
+        public Dictionary<string, string> GetAllFolderPaths(string type)
+        {
+			return _folderPathCache != null && _folderPathCache.TryGetValue(type, out var paths)
+				? paths
+				: [];
         }
 
         /// <summary>
@@ -334,6 +529,11 @@ namespace MonoBuilder.Utils
         public string? GetFolderPath(string key)
         {
             return Folders.TryGetValue(key, out string? value) && value != string.Empty ? value : null;
+        }
+
+        public string? GetFolderPath(string type, int id)
+        {
+            return Folders.TryGetValue($"{type}:{id}", out string? value) && value != string.Empty ? value : null;
         }
         #endregion
 

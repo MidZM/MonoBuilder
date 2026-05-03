@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+
+<!--
+	This file defines the different actions that can be used in Monogatari.
+	
+	Use this file to add new actions to the MonoBuilder Application. Each each action must be structured in a specific manner to be loaded into the program.
+
+	File Usage Explanations:
+		- Name: The name of the action. This is used to show the user what actions are available when typing an open curly brace ({) in the script builder.
+		- Type: The type of action being defined. This is used to define what kind of action it is, and how it should act when inserted into the text box. The types are as follows:
+			- [value]: An action that takes an argument value after a semicolon (:). For example, {pause:1000} would be a pause action with a value of 1000 milliseconds.
+			- [paired]: An action that has an opening and closing tag, with content in between. For example, {angry}...{/angry} would be a paired action with the name "angry."
+			- [closing]: An action that is acts as a self closing tag, and does not take any arguments. For example, {speedreset/} would be a closing action that would reset the speed back to default after using {speed:10}. (NOTE: "{speedreset/}" does not ship with the Monogatari engine by default, this is just an example of a self closing action.)
+		- Placeholder: (ONLY FOR VALUE ACTIONS) This is the text that will be shown in the script builder when the user is typing an action of this type. It should be a hint to the user of what kind of value they should input for this action. For example, for a pause action, the placeholder could be "[integer value]" to indicate that the user should input an integer value in its place.
+		- UsageCount: This is a value that is used to keep track of how many times this action has been used in the script builder. This is used to determine which actions are most commonly used, and can be used to sort the actions in the script builder accordingly. This value is automatically updated by the application at runtime when the user inserts an action into the text box, so it should not be manually edited in this file unless you wish for a certain action to show up more often than others.
+-->
+
+<Root>
+	<!-- ============= -->
+	<!-- Value Actions -->
+	<!-- ============= -->
+	<Action Name="pause" Type="value" Placeholder="[integer value]" UsageCount="100" />
+	<Action Name="speed" Type="value" Placeholder="[integer value]" UsageCount="100" />
+
+	<!-- ============== -->
+	<!-- Paired Actions -->
+	<!-- ============== -->
+	<Action Name="angry" Type="paired" UsageCount="0" />
+	<Action Name="scared" Type="paired" UsageCount="0" />
+	<Action Name="happy" Type="paired" UsageCount="0" />
+	<Action Name="sad" Type="paired" UsageCount="0" />
+	<Action Name="mysterious" Type="paired" UsageCount="0" />
+	<Action Name="excited" Type="paired" UsageCount="0" />
+	<Action Name="whisper" Type="paired" UsageCount="0" />
+	<Action Name="shout" Type="paired" UsageCount="0" />
+	<Action Name="dizzy" Type="paired" UsageCount="0" />
+	<Action Name="dreamy" Type="paired" UsageCount="0" />
+	<Action Name="robotic" Type="paired" UsageCount="0" />
+	<Action Name="static" Type="paired" UsageCount="0" />
+	<Action Name="wave" Type="paired" UsageCount="0" />
+	<Action Name="wave-hard" Type="paired" UsageCount="0" />
+	<Action Name="wave-slow" Type="paired" UsageCount="0" />
+	<Action Name="wave-little" Type="paired" UsageCount="0" />
+	<Action Name="wave-horizontal" Type="paired" UsageCount="0" />
+	<Action Name="wave-vertical" Type="paired" UsageCount="0" />
+	<Action Name="shake" Type="paired" UsageCount="0" />
+	<Action Name="shake-hard" Type="paired" UsageCount="0" />
+	<Action Name="shake-slow" Type="paired" UsageCount="0" />
+	<Action Name="shake-little" Type="paired" UsageCount="0" />
+	<Action Name="shake-horizontal" Type="paired" UsageCount="0" />
+	<Action Name="shake-vertical" Type="paired" UsageCount="0" />
+	<Action Name="fade" Type="paired" UsageCount="0" />
+	<Action Name="fade-slow" Type="paired" UsageCount="0" />
+	<Action Name="blur" Type="paired" UsageCount="0" />
+	<Action Name="scale" Type="paired" UsageCount="0" />
+	<Action Name="scale-bound" Type="paired" UsageCount="0" />
+	<Action Name="scale-up" Type="paired" UsageCount="0" />
+	<Action Name="scale-down" Type="paired" UsageCount="0" />
+	<Action Name="glitch" Type="paired" UsageCount="0" />
+	<Action Name="glitch-hard" Type="paired" UsageCount="0" />
+	<Action Name="glitch-slow" Type="paired" UsageCount="0" />
+	<Action Name="impact" Type="paired" UsageCount="0" />
+	<Action Name="redacted" Type="paired" UsageCount="0" />
+	<Action Name="invisible-ink" Type="paired" UsageCount="0" />
+	<Action Name="handwriting" Type="paired" UsageCount="0" />
+	<Action Name="strike" Type="paired" UsageCount="0" />
+	<Action Name="flicker" Type="paired" UsageCount="0" />
+	<Action Name="rainbow" Type="paired" UsageCount="0" />
+	<Action Name="glow" Type="paired" UsageCount="0" />
+	<Action Name="big" Type="paired" UsageCount="0" />
+	<Action Name="small" Type="paired" UsageCount="0" />
+	<Action Name="bold" Type="paired" UsageCount="0" />
+	<Action Name="italic" Type="paired" UsageCount="0" />
+	
+	<!-- =============== -->
+	<!-- Closing Actions -->
+	<!-- =============== -->
+
+</Root>

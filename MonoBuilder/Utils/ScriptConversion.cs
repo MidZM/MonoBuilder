@@ -2,19 +2,26 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Windows.Media;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
+using System.Diagnostics;
+using System.Windows.Documents;
+using System.Windows;
+using ICSharpCode.AvalonEdit.Document;
+using MonoBuilder.Utils.character_management;
 
 namespace MonoBuilder.Utils
 {
 
     public class ConversionRule
     {
-        public string? Name { get; set; }
+        public required string Name { get; set; }
         public Regex Pattern { get; set; } = new Regex(@"");
         public bool IsEnabled { get; set; } = true;
         public int Priority { get; set; }
@@ -29,6 +36,7 @@ namespace MonoBuilder.Utils
     public partial class ScriptConversion
     {
         private Characters CharacterDatabase { get; set; }
+        private ActionHelper ActionUtility { get; set; }
 
         public List<ConversionRule> ConversionRules { get; set; } = new()
         {
@@ -42,7 +50,9 @@ namespace MonoBuilder.Utils
             new() { Name = "Narration",             Pattern = new Regex(@"^(?<text>.+)$"),      Priority = 8 },
         };
 
-        private IOrderedEnumerable<ConversionRule>? SortedRules { get; set; } = null;
+        private IOrderedEnumerable<ConversionRule>? _sortedRules { get; set; } = null;
+		private Dictionary<string, Character>? _characterList { get; set; } = null;
+		private Dictionary<string, Character>? _characterTagList { get; set; } = null;
 
         private bool PreventIndent { get; set; } = false;
         private int IndentationAmount { get; set; } = 4;
@@ -50,14 +60,19 @@ namespace MonoBuilder.Utils
         private bool IsColorFormatting { get; set; } = true;
         private bool IsAutoSyncLabels { get; set; } = true;
 
+        private IAction[] InlineFormatTags;
+
         private XDocument data { get; set; } = new XDocument();
 
         [GeneratedRegex(@"^(function)|(.*=>)")]
         private static partial Regex FunctionCheck();
 
-        public ScriptConversion(Characters characters)
+        public ScriptConversion(Characters characters, ActionHelper actionHelper)
         {
             CharacterDatabase = characters;
+            ActionUtility = actionHelper;
+            InlineFormatTags = ActionUtility.AllActions.ToArray();
+
             LoadSettings();
         }
 
@@ -92,21 +107,22 @@ namespace MonoBuilder.Utils
                         Rule.Pattern = pattern;
                         Rule.IsEnabled = (bool)colorIsEnabled;
                         Rule.Priority = (int)priority;
+						UnsetSortedRules();
                     }
                 }
             }
             catch (FileNotFoundException error)
             {
-                Console.WriteLine(error);
-            }
+				DialogBox.Show($"Settings file not found!\n\n{error}", "File Not Found");
+			}
             catch (XmlException error)
             {
-                Console.WriteLine(error);
-            }
+				DialogBox.Show($"Settings file is corrupted or has invalid format!\n\n{error}", "File Corrupted");
+			}
             catch (Exception error)
             {
-                Console.WriteLine(error);
-            }
+				DialogBox.Show($"An error occurred while loading settings!\n\n{error}", "Error Loading Settings");
+			}
         }
 
         public void SaveSettings()
@@ -128,10 +144,12 @@ namespace MonoBuilder.Utils
             data.Save("data/scripts.xml");
         }
 
-        public string Convert(string scriptInput)
+        public string Convert(TextDocument scriptInput)
         {
-            SortedRules = ConversionRules.Where(r => r.IsEnabled).OrderBy(r => r.Priority);
-            var outputLines = new List<string>();
+			GetSortedRules();
+			GetCharacterList();
+
+			var outputLines = new List<string>();
 
             PreventIndent = true;
 
@@ -149,10 +167,11 @@ namespace MonoBuilder.Utils
             return BuildOutput(outputLines);
         }
 
-        public string Convert(string label, string scriptInput)
+        public string Convert(string label, TextDocument scriptInput)
         {
-            SortedRules = ConversionRules.Where(r => r.IsEnabled).OrderBy(r => r.Priority);
-            PreventIndent = false; // Fallback in-case of an issue.
+			GetSortedRules();
+			GetCharacterList();
+			PreventIndent = false; // Fallback in-case of an issue.
 
             var outputLines = new List<string>();
 
@@ -168,9 +187,10 @@ namespace MonoBuilder.Utils
             return BuildOutput(label, outputLines);
         }
 
-        public List<LineFormatInfo> ConvertWithFormtting(string label, string scriptInput)
+        public List<LineFormatInfo> ConvertWithFormtting(string label, TextDocument scriptInput)
         {
-            SortedRules = ConversionRules.Where(r => r.IsEnabled).OrderBy(r => r.Priority);
+			GetSortedRules();
+			GetCharacterList();
             PreventIndent = false; // Fallback in-case of an issue.
 
             List<LineFormatInfo> outputLines = new();
@@ -223,6 +243,8 @@ namespace MonoBuilder.Utils
 
         public string Deconvert(string scriptInput)
         {
+			GetCharacterList();
+
             var lines = scriptInput.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             var outputLines = new List<string>();
 
@@ -273,7 +295,25 @@ namespace MonoBuilder.Utils
             return string.Join(Environment.NewLine, outputLines);
         }
 
-        #region Variable Helper Functions
+		#region Variable Helper Functions
+		private IOrderedEnumerable<ConversionRule> GetSortedRules() =>
+			_sortedRules ??= ConversionRules.Where(r => r.IsEnabled).OrderBy(r => r.Priority);
+
+		public void UnsetSortedRules() =>
+			_sortedRules = null;
+
+		private void GetCharacterList()
+		{
+			_characterList ??= CharacterDatabase.AllCharacters.ToDictionary(c => c.Name.ToLower(), c => c);
+			_characterTagList ??= CharacterDatabase.AllCharacters.ToDictionary(c => c.Tag, c => c);
+		}
+
+		public void UnsetCharacterList()
+		{
+			_characterList = null;
+			_characterTagList = null;
+		}
+
         private bool ValidateDataType(string type, object value)
         {
             string TypeOf = type.ToLower();
@@ -399,15 +439,15 @@ namespace MonoBuilder.Utils
         #endregion
 
         #region Conversion Helper Functions
-        private IEnumerable<string> CollectEntries(string scriptInput)
+        private IEnumerable<string> CollectEntries(TextDocument scriptInput)
         {
-            var lines = scriptInput.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             var blockBuffer = new List<string>();
             int braceDepth = 0;
 
-            foreach (var line in lines)
+            foreach (DocumentLine line in scriptInput.Lines)
             {
-                string trimmed = line.Trim();
+                string text = scriptInput.GetText(line);
+                string trimmed = text.Trim();
 
                 // Only count structural braces when we are already inside an open
                 // multi-line block, OR when this line explicitly begins with '{',
@@ -415,19 +455,20 @@ namespace MonoBuilder.Utils
                 // Lines that do not start with '{' (dialogue, narration, etc.) may
                 // legitimately contain '{' or '}' in their text, which must not
                 // affect brace depth tracking.
-                bool isObjectActionLine = trimmed.StartsWith('{') ||
+                bool isObjectActionLine = (trimmed.StartsWith('{') && !StartsWithInlineFormatTag(trimmed)) ||
                                           trimmed.StartsWith("function") ||
                                           trimmed.StartsWith("(");
 
                 if (isObjectActionLine || blockBuffer.Count > 0)
                 {
-                    braceDepth += trimmed.Count(c => c == '{');
-                    braceDepth -= trimmed.Count(c => c == '}');
+                    string braceAwareLine = RemoveInlineFormatTags(trimmed);
+                    braceDepth += braceAwareLine.Count(c => c == '{');
+                    braceDepth -= braceAwareLine.Count(c => c == '}');
                 }
 
                 if (braceDepth > 0 || blockBuffer.Count > 0)
                 {
-                    blockBuffer.Add(line);
+                    blockBuffer.Add(text);
 
                     if (braceDepth <= 0)
                     {
@@ -438,7 +479,7 @@ namespace MonoBuilder.Utils
                 }
                 else
                 {
-                    yield return line;
+                    yield return text;
                 }
             }
 
@@ -446,6 +487,24 @@ namespace MonoBuilder.Utils
             {
                 yield return string.Join(Environment.NewLine, blockBuffer);
             }
+        }
+
+        private bool StartsWithInlineFormatTag(string line)
+        {
+            return InlineFormatTags.Any(a => line.StartsWith($"{{{a.Name}}}"));
+        }
+
+        private string RemoveInlineFormatTags(string line)
+        {
+            foreach (IAction tag in InlineFormatTags)
+            {
+                if (line.Contains(tag.Name))
+                {
+                    line = line.Replace($"{{{tag.Name}}}", string.Empty, StringComparison.Ordinal).Replace($"{{/{tag.Name}}}", string.Empty, StringComparison.Ordinal);
+                }
+            }
+
+            return line;
         }
 
         private string? ProcessEntry(string entry)
@@ -462,7 +521,7 @@ namespace MonoBuilder.Utils
         {
             if (entry.Contains('\n'))
             {
-                return (FormatObjectActions(entry, "multiline"), Color.Cyan);
+                return (FormatObjectActions(entry, "multiline"), Colors.Cyan);
             }
 
             return ProcessLineWithColor(entry);
@@ -470,9 +529,9 @@ namespace MonoBuilder.Utils
 
         private (string? line, Color? color) ProcessLineWithColor(string line)
         {
-            if (SortedRules != null)
+            if (_sortedRules != null)
             {
-                foreach (ConversionRule rule in SortedRules)
+                foreach (ConversionRule rule in _sortedRules)
                 {
                     var match = rule.Pattern.Match(line);
 
@@ -480,16 +539,16 @@ namespace MonoBuilder.Utils
                     {
                         return rule.Name switch
                         {
-                            "Comment"               => (line, Color.Olive),
+                            "Comment"               => (AddIndentation() + line, Colors.DeepPink),
                             "Empty"                 => ("", null),
-                            "StringAction"          => (FormatStringAction(match.Groups["text"].Value), Color.LimeGreen),
-                            "ObjectEnclosedAction"  => (FormatObjectActions(match.Groups["text"].Value, "enclosed"), Color.Cyan),
-                            "ObjectActionOpen"      => (FormatObjectActions(match.Groups["text"].Value, "open"), Color.Cyan),
-                            "ObjectActionClose"    => (FormatObjectActions(match.Groups["text"].Value, "closed"), Color.Cyan),
+                            "StringAction"          => (FormatStringAction(match.Groups["text"].Value), Colors.LimeGreen),
+                            "ObjectEnclosedAction"  => (FormatObjectActions(match.Groups["text"].Value, "enclosed"), Colors.Cyan),
+                            "ObjectActionOpen"      => (FormatObjectActions(match.Groups["text"].Value, "open"), Colors.Cyan),
+                            "ObjectActionClose"    => (FormatObjectActions(match.Groups["text"].Value, "closed"), Colors.Cyan),
                             "CharacterLine"         => (FormatCharacterLine(
                                                             match.Groups["character"].Value,
                                                             match.Groups["text"].Value), null),
-                            "Narration"             => (FormatNarration(match.Groups["text"].Value), Color.DarkOrange),
+                            "Narration"             => (FormatNarration(match.Groups["text"].Value), Colors.DarkOrange),
                             _ => (null, null)
                         };
                     }
@@ -513,9 +572,9 @@ namespace MonoBuilder.Utils
 
         private string? ProcessLine(string line)
         {
-            if (SortedRules != null)
+            if (_sortedRules != null)
             {
-                foreach (ConversionRule rule in SortedRules)
+                foreach (ConversionRule rule in _sortedRules)
                 {
                     Regex regex = rule.Pattern;
                     var match = regex.Match(line);
@@ -546,8 +605,7 @@ namespace MonoBuilder.Utils
 
         private string FormatCharacterLine(string characterName, string text)
         {
-            var character = CharacterDatabase.AllCharacters
-                .FirstOrDefault(c => c.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+			_characterList!.TryGetValue(characterName.ToLower(), out var character);
 
             string tag = character?.Tag ?? characterName.ToLower().Substring(0, Math.Min(3, characterName.Length));
 
@@ -769,8 +827,12 @@ namespace MonoBuilder.Utils
 
         private (bool, Character?) IsCharacterDialog(string? firstWord)
         {
-            var character = CharacterDatabase.AllCharacters.FirstOrDefault(c => c.Tag.Equals(firstWord));
-            return (character != null, character);
+			if (firstWord != null && _characterTagList!.TryGetValue(firstWord, out var character))
+			{
+				return (character != null, character);
+			}
+
+			return (false, null);
         }
 
         private bool IsActionDialog(char firstLetter)

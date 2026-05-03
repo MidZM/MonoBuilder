@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="MonoMarkdown" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+	<Color name="Comment" foreground="DeepPink" exampleText="// Comment" />
+	<Color name="StringAction" foreground="LimeGreen" exampleText="[show character at left with slideInLeft duration 0.2s]" />
+	<Color name="ObjectEnclosedAction" foreground="Cyan" exampleText="{ Function: { Apply: function() { return: 'Cheese' } } }" />
+	<Color name="ObjectAction" foreground="Cyan" />
+	<Color name="CharacterLine" foreground="White" exampleText="Zaydin - Hello, world!" />
+	
+	<Color name="Bold" foreground="Honeydew" fontWeight="bold" exampleText="**Bold Text**" />
+	<Color name="Italic" foreground="PapayaWhip" fontStyle="italic" exampleText="*Italic Text*" />
+	<Color name="BigText" foreground="LightPink" fontSize="22" exampleText="^^Big Text^^" />
+	<Color name="SmallText" foreground="LightBlue" fontSize="8" exampleText="^Small Text^" />
+
+	<RuleSet ignoreCase="true">
+		<Span color="Comment" begin="^\s*//.*" />
+		<Span color="StringAction" begin="^\[.*\]$" />
+		<Span color="ObjectEnclosedAction" begin="^\{.*\}$" />
+
+		<Span color="CharacterLine">
+			<Begin>^.+(?=\s*-)</Begin>
+			<End>$</End>
+			<RuleSet>
+				<Span color="Bold" begin="\{bold\}" end="\{/bold\}" />
+				<Span color="Italic" begin="\{italic\}" end="\{/italic\}" />
+				<Span color="BigText" begin="\{big\}" end="\{/big\}" />
+				<Span color="SmallText" begin="\{small\}" end="\{/small\}" />
+			</RuleSet>
+		</Span>
+		
+		<Span color="ObjectAction" multiline="true" begin="^\{" end="^\}">
+			<RuleSet>
+				<Span color="ObjectAction" begin="^\{" end="^\}" multiline="true" ruleSet="" />
+			</RuleSet>
+		</Span>
+
+		<Rule color="Bold">
+			\{bold\}.*?\{/bold\}
+		</Rule>
+
+		<Rule color="Italic">
+			\{italic\}.*?\{/italic\}
+		</Rule>
+
+		<Rule color="BigText">
+			\{big\}.*?\{/big\}
+		</Rule>
+
+		<Rule color="SmallText">
+			\{small\}.*?\{/small\}
+		</Rule>
+	</RuleSet>
+</SyntaxDefinition>
