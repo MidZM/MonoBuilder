@@ -443,6 +443,14 @@ namespace MonoBuilder.Screens
 					Editor.SaveToProgram(label, convertedScript, scriptFile.SelectionText);
 				}
 			}
+			else
+			{
+				DialogBox.Show(
+					"A script file has not been specified. Labels cannot be saved.\n\nTo specify a script file:\n- Open the Settings and scroll down\n- Select the \"Script\" tab in \"Game Directories\"\n- Click \"Select File\"\n- Locate and load your script file.\n\nNOTE: To select a script file, you must first specify a \"Base Folder\" in the \"General\" tab.",
+					"No Script File",
+					DialogButtonDefaults.OK,
+					DialogIcon.Warning);
+			}
 		}
 
 		private void ExecuteLoadCommand()

@@ -132,7 +132,7 @@ namespace MonoBuilder.Screens.ScreenUtils
                 filePath.Count  == 0)
             {
                 DialogBox.Show(
-                    $"The \"{Mode}\" folder has not been set up yet. In order to preoprly build images, the folder being used by the engine to serve images must be set in the settings menu.",
+                    $"The \"{Mode}\" folder has not been set up yet. In order to properly build images, the folder being used by the engine to serve images must be set in the settings menu.",
                     $"No Valid {Mode} Folder",
                     DialogButtonDefaults.OK,
                     DialogIcon.Warning);

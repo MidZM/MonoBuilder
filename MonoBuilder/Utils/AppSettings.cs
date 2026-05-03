@@ -212,11 +212,11 @@ namespace MonoBuilder.Utils
         /// <summary>
         /// Adds a file path to the collection or replaces the existing entry for the specified key.
         /// </summary>
-        /// <param name="fileName">The key associated with the file path.</param>
-        /// <param name="path">The file path to add or replace.</param>
-        public void AddReplaceFile(string fileName, string path)
+        /// <param name="key">The key associated with the file path.</param>
+        /// <param name="fileName">The file path to add or replace.</param>
+        public void AddReplaceFile(string key, string fileName)
         {
-            FileNames[fileName] = path;
+            FileNames[key] = fileName;
 			RebuildFileNameCache();
         }
 
@@ -295,7 +295,7 @@ namespace MonoBuilder.Utils
 		public void AddReplaceFilePath(string key, string path)
         {
             Files[key] = path;
-			AddReplaceFile(Path.GetFileName(path), path);
+			AddReplaceFile(key, Path.GetFileName(path));
 			RebuildFilePathCache();
         }
 
@@ -380,11 +380,11 @@ namespace MonoBuilder.Utils
 		/// <summary>
 		/// Adds or replaces a folder mapping with the specified key and value.
 		/// </summary>
-		/// <param name="folderName">The key identifying the folder mapping.</param>
-		/// <param name="value">The folder path to associate with the key.</param>
-		public void AddReplaceFolder(string folderName, string value)
+		/// <param name="key">The key identifying the folder mapping.</param>
+		/// <param name="folderName">The folder path to associate with the key.</param>
+		public void AddReplaceFolder(string key, string folderName)
         {
-            FolderNames[folderName] = value;
+            FolderNames[key] = folderName;
 			RebuildFolderNameCache();
         }
 
@@ -463,7 +463,7 @@ namespace MonoBuilder.Utils
 		public void AddReplaceFolderPath(string key, string path)
         {
             Folders[key] = path;
-			AddReplaceFile(Path.GetFileName(path), path);
+			AddReplaceFile(key, Path.GetFileName(path));
 			RebuildFolderPathCache();
         }
 

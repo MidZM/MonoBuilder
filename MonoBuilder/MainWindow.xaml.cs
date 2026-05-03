@@ -77,26 +77,14 @@ namespace MonoBuilder
 				Directory.CreateDirectory("data");
 			}
 
-			if (!File.Exists("data/MonoBuilder.Markdown.xshd"))
-			{
-				Helpers.InitializeMarkdownFile();
-			}
+			string fileName = "data/MonoBuilder.Markdown.xshd";
+			Helpers.GenerateResourceIfMissing(fileName);
 		}
 
 		private void InitializeActionsList()
 		{
-			if (!File.Exists("data/actions.xml"))
-			{
-				string fileName = "data/actions.xml";
-				string assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name ?? "MonoBuilder";
-				var resourceUri = new Uri($"pack://application:,,,/{assemblyName};component/{fileName}");
-				var resourceInfo = Application.GetResourceStream(resourceUri);
-
-				using (var fileStream = File.Create(fileName))
-				{
-					resourceInfo.Stream.CopyTo(fileStream);
-				}
-			}
+			string fileName = "data/actions.xml";
+			Helpers.GenerateResourceIfMissing(fileName);
 		}
         #endregion
 

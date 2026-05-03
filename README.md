@@ -88,7 +88,7 @@ Many features require the developer to set up their environment. This process i
 **(Note: it is not recommended to change the names of, or delete, files and/or folders while the program isn't running. While there are fail-safes that will change the name or remove links if files/folders are renamed or removed while the program is running, there currently aren't any fail-safes when starting the program after the fact. This could result in startup errors, broken links, or weird behavior)**
 - Enter the settings screen
 - Scroll down to "**Game Directories**"
-- Select a "**Base Folder**" (Usually the folder where the **index.html** is housed) *Not Technically "Required" Anymore, but please just set it to avoid bugs...
+- Select a "**Base Folder**" (Usually the folder where the **index.html** is housed) *Required for nearly all aspects of development. (Recommended to set before doing anything else)
 - Select an "**Assets Folder**" (Where images and other assets sit, usually called "**assets**") *Not Required, but may be helpful in future updates.
 - Select an "**Image Asset Folder**" (Where images and other assets sit, usually called "**images**") *Required to use the `Image Builder`
 - Select a "**Scene Asset Folder**" (Where images and other assets sit, usually called "**scenes**") *Required to use the `Scene Builder`
