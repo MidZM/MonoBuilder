@@ -97,7 +97,7 @@ namespace MonoBuilder.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 0.4.0.
+        ///   Looks up a localized string similar to 0.5.0.
         /// </summary>
         public static string Version {
             get {

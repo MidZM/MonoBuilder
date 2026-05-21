@@ -5,12 +5,15 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:MonoBuilder"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:MonoBuilder.ViewModels.MainModel"
     Title="MonoBuilder"
     Width="960"
     Height="575"
     MinWidth="900"
     MinHeight="400"
     Padding="25"
+    d:DataContext="{d:DesignInstance Type=vm:MainViewModel,
+                                     IsDesignTimeCreatable=True}"
     Style="{StaticResource WindowStyle}"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
@@ -47,99 +50,52 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <StackPanel
-                x:Name="Left_Panel"
-                Grid.Column="0"
-                Grid.ColumnSpan="1"
-                Width="300"
-                MinWidth="300"
-                ScrollViewer.CanContentScroll="True">
-                <Button
-                    x:Name="BtnScriptBuilder"
-                    Click="BtnScriptBuilder_Click"
-                    Content="Script Builder"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnCharacterBuilder"
-                    Content="Character Builder"
-                    IsEnabled="False"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnImageBuilder"
-                    Click="BtnImageBuilder_Click"
-                    Content="Image Builder"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnSceneBuilder"
-                    Click="BtnSceneBuilder_Click"
-                    Content="Scene Builder"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnGalleryBuilder"
-                    Click="BtnGalleryBuilder_Click"
-                    Content="Gallery Builder"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnMediaBuilder"
-                    Content="Media Builder"
-                    IsEnabled="False"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnParticleBuilder"
-                    Content="Particle Builder"
-                    IsEnabled="False"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnMessageBuilder"
-                    Content="Message Builder"
-                    IsEnabled="False"
-                    Style="{StaticResource DefaultButton}" />
-                <Button
-                    x:Name="BtnNotificationBuilder"
-                    Content="Notification Builder"
-                    IsEnabled="False"
-                    Style="{StaticResource DefaultButton}" />
-            </StackPanel>
+            <ItemsControl ItemsSource="{Binding BuilderButtons}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button
+                            Command="{Binding DataContext.OpenBuilderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CommandParameter="{Binding}"
+                            Content="{Binding Text}"
+                            IsEnabled="{Binding IsEnabled}"
+                            Style="{StaticResource DefaultButton}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </ScrollViewer>
         <StackPanel
             x:Name="Middle_Panel"
             Grid.Column="1"
             Width="320"
             HorizontalAlignment="Center">
-            <Button
-                x:Name="SettingsButton"
-                Width="90"
-                Height="90"
-                Padding="5"
-                Click="SettingsButton_Click"
-                Style="{StaticResource DefaultButton}">
-                <Image
-                    Width="70"
-                    Height="70"
-                    Source="Assets/Cog.png" />
-            </Button>
-            <Label
-                x:Name="SettingsText"
-                HorizontalAlignment="Center"
-                Content="Settings"
-                Visibility="{Binding ElementName=SettingsButton, Path=IsMouseOver, Converter={StaticResource BoolToVis}}" />
-            <Button
-                x:Name="ExitButton"
-                Width="90"
-                Height="90"
-                Padding="5"
-                Click="ExitButton_Click"
-                Style="{StaticResource DefaultButton}">
-                <Image
-                    Width="70"
-                    Height="70"
-                    Source="Assets/Door.png" />
-            </Button>
-            <Label
-                x:Name="ExitText"
-                HorizontalAlignment="Center"
-                Content="Exit"
-                Visibility="{Binding ElementName=ExitButton, Path=IsMouseOver, Converter={StaticResource BoolToVis}}" />
+            <ItemsControl ItemsSource="{Binding UtilityButtons}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <Button
+                                x:Name="UtilityButton"
+                                Width="{Binding Width}"
+                                Height="{Binding Height}"
+                                Padding="{Binding Padding}"
+                                Command="{Binding DataContext.RunUtilityCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                DockPanel.Dock="Top"
+                                Style="{StaticResource DefaultButton}">
+                                <Image
+                                    Width="{Binding ImgWidth}"
+                                    Height="{Binding ImgHeight}"
+                                    d:Source="/Assets/fallback.jpg"
+                                    Source="{Binding Source}" />
+                            </Button>
+                            <Label
+                                HorizontalAlignment="Center"
+                                Content="{Binding LabelText}"
+                                DockPanel.Dock="Top"
+                                Visibility="{Binding ElementName=UtilityButton, Path=IsMouseOver, Converter={StaticResource BoolToVis}}" />
+                        </DockPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
         <Grid
             x:Name="Right_Panel"
@@ -159,7 +115,7 @@
                 VerticalAlignment="Center">
                 <Hyperlink
                     x:Name="VersionInfo"
-                    Click="VersionInfo_Clicked"
+                    Command="{Binding OpenVersionInfoCommand}"
                     FontWeight="Bold">
                     Version Information
                 </Hyperlink>
@@ -176,8 +132,8 @@
                 HorizontalAlignment="Center">
                 <Hyperlink
                     x:Name="ImageLink"
-                    NavigateUri="https://store.steampowered.com/app/1977000/Symbiotic_Invasion/"
-                    RequestNavigate="Hyperlink_RequestNavigate">
+                    Command="{Binding OpenSteamStoreCommand}"
+                    CommandParameter="https://store.steampowered.com/app/1977000/Symbiotic_Invasion/">
                     <Grid>
                         <Image
                             MinWidth="100"
