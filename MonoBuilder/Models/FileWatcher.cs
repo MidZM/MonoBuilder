@@ -9,6 +9,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using MonoBuilder.Models.notification_management;
+using MonoBuilder.ViewModels.NotifierModel;
+using MonoBuilder.ViewModels.ImageModel;
 
 namespace MonoBuilder.Models
 {
@@ -41,7 +43,8 @@ namespace MonoBuilder.Models
             AppSettings settings,
             ScriptConversion converter,
             Characters characters,
-            MonoImages images)
+            MonoImages images,
+			Notifications notifications)
         {
             var masterPath = settings.GetFolderPath("Base");
 
@@ -52,6 +55,7 @@ namespace MonoBuilder.Models
                 ScriptConverter = converter;
                 CharacterData = characters;
                 ImageData = images;
+				NotificationData = notifications;
 
                 watcher.Path = masterPath;
                 watcher.NotifyFilter = NotifyFilters.LastWrite
@@ -121,7 +125,7 @@ namespace MonoBuilder.Models
                 ShowChangedMadeImages();
             }
 
-			if (changed["Messgaes"] || changed["Notifications"])
+			if (changed["Messages"] || changed["Notifications"])
 			{
 				ShowChangesMadeNotifications();
 			}
@@ -544,9 +548,12 @@ namespace MonoBuilder.Models
                                 ImageData.UpdateImage(image.EntityID, image);
                             }
                         }
-                    }
+					}
 
-                    if (shouldShowMessages)
+					var context = CurrentContext!.DataContext as ImageViewModel;
+					context!.ClearSelectedEntities();
+
+					if (shouldShowMessages)
                     {
                         DialogBox.Show(
                         "Sucessfully updated image assets!",
@@ -576,7 +583,7 @@ namespace MonoBuilder.Models
                 if (shouldShowMessages)
                 {
                     DialogBox.Show(
-                    "Changes to an image, scene, or gallery file were made!\nTo preserve synchronicity, existing assets will be forcibly updated.",
+                    "Changes to a message or notification file was made!\nTo preserve synchronicity, existing content will be forcibly updated.",
                     "Changes Made",
                     DialogButtonDefaults.OK,
                     DialogIcon.Warning);
@@ -629,18 +636,22 @@ namespace MonoBuilder.Models
 								}
 
 								NotificationData.UpdateNotification(notifierId, newNotifier);
-                            }
-                        }
+							}
+						}
 
-                        foreach (var notifier in unsyncedNotifiers)
-                        {
-                            if (notifier.IsSynced)
-                            {
-                                notifier.IsSynced = false;
-                                NotificationData.UpdateNotification(notifier.EntityID, notifier);
-                            }
-                        }
-                    }
+						foreach (var notifier in unsyncedNotifiers)
+						{
+							if (notifier.IsSynced)
+							{
+								notifier.IsSynced = false;
+								NotificationData.UpdateNotification(notifier.EntityID, notifier);
+							}
+						}
+
+					}
+
+					var context = CurrentContext!.DataContext as NotifierViewModel;
+					context!.ClearSelectedEntities();
 
                     if (shouldShowMessages)
                     {

@@ -56,6 +56,8 @@ namespace MonoBuilder.ViewModels._generic_models
 			=> _tabbedModel.InitializeAvailableFiles(type);
 		protected void InitializeDataTabs(string type, ObservableCollection<T> dataSource)
 			=> _tabbedModel.InitializeDataTabs(type, dataSource);
+		internal void ClearSelectedEntities()
+			=> _tabbedModel.ClearSelectedEntities();
 		protected void ApplyDataTabs(string type)
 			=> _tabbedModel.ApplyDataTabs(type);
 		protected double WindowSizeChanged(int currentWidth, double margin, double borderThickness, int padding = 0)

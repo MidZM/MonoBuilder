@@ -1,7 +1,7 @@
 # MonoBuilder | Monogatari Visual Novel Builder
 
 ### Current Version
-- 0.4.1
+- 0.5.0
 
 ## What is MonoBuilder?
 MonoBuilder is a graphical interface development tool designed and developed to assist visual novel developers using the Monogatari game engine.
@@ -40,6 +40,9 @@ MonoBuilder is a graphical interface development tool designed and developed to 
   - Track and manage image assets added to the game's image, scene, and gallery directories.
   - Synchronize existing image assets, both in the program and in your game project.
   - View which image asset is which directly in the program. (No more guessing based on image name classification.)
+- Message Builder and Notification Builder
+  - Track, manage, and modify the different notifier types added to the game.
+  - Synchronize existing notifiers, both in the program and in your game project.
 
 
 ### How To Use
@@ -71,13 +74,9 @@ MonoBuilder is a graphical interface development tool designed and developed to 
 ## Planned Features
 - Character Builder
   - An all-encompassing character builder that allows users to easily add and manage sprites for all of their existing characters.
-- Audio Builder
-  - Track and manage any music, sound, or voice audio that you'll be using in your game.
+- Media Builder
+  - Track and manage any music, sound, voice, or video assets that you'll be using in your game.
 - ~~Particle Builder~~ (As of 0.4.0, the particle builder will likely be a feature that links to a **proper** particle builder, rather than rigging up my own and running into various issues)
-- Message Builder
-  - Easily build and manage default messages that will be relayed to players during gameplay.
-- Notification Builder
-  - Build and manage notifications that will be sent to players during gameplay.
 - Credits Manager
   - Build and configure the credits screen to appear and act as you intend.
 - Main Menu Manager (**Being Considered, Not Final**)
@@ -99,6 +98,8 @@ Many features require the developer to set up their environment. This process i
 - Select (an) "**Image File(s)**" (Where you define and add image files. Starts in the "**script.js**" by default) *Required to use the `Image Builder`
 - Select (a) "**Scene File(s)**" (Where you define and add scene image files. Starts in the "**script.js**" by default) *Required to use the `Scene Builder`
 - Select (a) "**Gallery File(s)**" (Where you define and add gallery image files. Starts in the "**script.js**" by default) *Required to use the `Gallery Builder`
+- Select (a) "**Message File(s)**" (Where you define and add message files. Starts in the "**script.js**" by default) *Required to use the `Message Builder`
+- Select (a) "**Notification File(s)**" (Where you define and add notification files. Starts in the "**script.js**" by default) *Required to use the `Notification Builder`
 
 #### Setting up the Characters File for Program Manipulation and Development:
 - Insert start and end tags inside of the `monogatari.characters({...});` definition(s).
@@ -196,6 +197,46 @@ monogatari.assets ('gallery', {
   // GALLERY_INSERTION_POINT
   "ImAnImage": "Im/An/Image/Path.jpg"
   // END_GALLERY_INSERTION_POINT
+});
+```
+
+#### Setting up the Message and/or Notification File for Program MAnipulation and Development:
+- Insert start and end tags inside of the different notifier actions: `monogatari.action('message').messages({...})`/`monogatari.action('notification').notifications({...})`
+  - Message Tags:
+    - `// MESSAGES_INSERTION_POINT`
+	- `// END_MESSAGES_INSERTION_POINT`
+	- Insert Message Tags on Each Message:
+	  - `// MESSAGE_START`
+	  - `// MESSAGE_END`
+  - Notification Tags:
+    - `// NOTIFICATIONS_INSERTION_POINT`
+	- `// END_NOTIFICATIONS_INSERTION_POINT`
+	- Insert Notification Tags on Each Notification
+	  - `// NOTIFICATION_START`
+	  - `// NOTIFICATION_END`
+
+```js
+monogatari.action('message').messages({
+	// MESSAGES_INSERTION_POINT
+	'Help': { // MESSAGE_START
+		title: 'Help',
+		subtitle: 'Some useful Links',
+		body: `
+			<p><a href='https://developers.monogatari.io/documentation/'>Documentation</a> - Everything you need to know.</p>
+			<p><a href='https://monogatari.io/demo/'>Demo</a> - A simple Demo.</p>
+		`
+	} // MESSAGE_END
+	// END_NOTIFICATIONS_INSERTION_POINT
+});
+
+monogatari.action ('notification').notifications ({
+	// NOTIFICATIONS_INSERTION_POINT
+	'Welcome': { // NOTIFICATION_START
+		title: 'Welcome',
+		body: 'This is the Monogatari VN Engine',
+		icon: ''
+	}, // NOTIFICATION_END
+	// END_NOTIFICATIONS_INSERTION_POINT
 });
 ```
 

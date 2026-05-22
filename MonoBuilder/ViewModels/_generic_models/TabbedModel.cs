@@ -42,6 +42,11 @@ namespace MonoBuilder.ViewModels._generic_models
 			set
 			{
 				SetProperty(ref _selectedTab, value);
+
+				if (_selectedTab?.Type != null)
+				{
+					ApplyDataTabs(_selectedTab.Type);
+				}
 			}
 		}
 
