@@ -99,7 +99,8 @@ namespace MonoBuilder.ViewModels.MainModel
 				ApplicationSettings,
 				Converter,
 				CharacterData,
-				ImageData);
+				ImageData,
+				NotificationData);
 			FileWatcher.SetCurrentContext(Owner);
 
 			if (CharacterData.CheckSynchronicity(true))

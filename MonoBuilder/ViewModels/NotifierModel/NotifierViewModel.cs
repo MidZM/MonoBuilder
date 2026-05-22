@@ -186,6 +186,10 @@ namespace MonoBuilder.ViewModels.NotifierModel
 				{
 					ShowPreviewMessage(SelectedEntity);
 				}
+				else
+				{
+					RemovePreviewMessage();
+				}
 			};
 		}
 
@@ -232,6 +236,12 @@ namespace MonoBuilder.ViewModels.NotifierModel
 		private void ShowPreviewMessage(Notification notification)
 		{
 			PreviewMessage.Text = FormatPreviewMessage(notification);
+		}
+
+		private void RemovePreviewMessage()
+		{
+			ClearNotifierEditors();
+			PreviewMessage.Text = string.Empty;
 		}
 		#endregion
 	}

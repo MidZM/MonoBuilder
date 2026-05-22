@@ -344,11 +344,13 @@ namespace MonoBuilder.Models.notification_management
 							parsedAttributes.TryGetValue("subtitle", out string? subtitle);
 							parsedAttributes.TryGetValue("body", out string? body);
 							parsedAttributes.TryGetValue("icon", out string? icon);
+							parsedAttributes.TryGetValue("actionString", out string? actionString);
 
 							notif.Title = title;
 							notif.Subtitle = subtitle;
 							notif.Body = body;
 							notif.Icon = icon;
+							notif.CloseAction = actionString;
 
 							currentId = string.Empty;
 							parsedAttributes.Clear();
@@ -942,8 +944,6 @@ namespace MonoBuilder.Models.notification_management
 			(string filePath, string resolvedFileKey) = CheckKeyResolutionInFile(fileKeyParam, name);
 			string tempPath = Path.GetTempFileName();
 
-			//bool didUpdate = false;
-
 			try
 			{
 				var lines = File.ReadAllLines(filePath).ToList();
@@ -1114,9 +1114,6 @@ namespace MonoBuilder.Models.notification_management
 							finalValue = valuePart;
 						}
 
-						System.Diagnostics.Debug.WriteLine(key);
-						System.Diagnostics.Debug.WriteLine(finalValue);
-
 						parsedAttributes[key] = finalValue;
 					}
 				}
@@ -1130,48 +1127,53 @@ namespace MonoBuilder.Models.notification_management
 			if (ApplicationSettings == null)
 				return false;
 
-			var files = GetNotificationFiles();
-			if (files.Count == 0)
-				return false;
-
 			bool hasChanged = false;
-
-			foreach (var (fileKey, _) in files)
+			string[] modes = ["messages", "notifications"];
+			foreach (var mode in modes)
 			{
-				var namesInFile = DataMode.Collection
-					.Where(i => i.IsSynced &&
-								(string.IsNullOrEmpty(i.FileKey)
-									? fileKey == ResolveNotificationFileKey()
-									: i.FileKey == fileKey))
-					.Select(i => i.Name)
-					.ToList();
+				SetDataMode(mode);
+				var files = GetNotificationFiles();
+				if (files.Count == 0)
+					return false;
 
-				if (namesInFile.Count == 0)
-					continue;
-
-				var contentMatches = NotificationContentMatches(namesInFile, fileKey);
-
-				foreach (string name in namesInFile)
+				foreach (var (fileKey, _) in files)
 				{
-					if (contentMatches.TryGetValue(name, out bool matches) && !matches)
+					var namesInFile = DataMode.Collection
+						.Where(i => i.IsSynced &&
+									(string.IsNullOrEmpty(i.FileKey)
+										? fileKey == ResolveNotificationFileKey()
+										: i.FileKey == fileKey))
+						.Select(i => i.Name)
+						.ToList();
+
+					if (namesInFile.Count == 0)
+						continue;
+
+					var contentMatches = NotificationContentMatches(namesInFile, fileKey);
+
+					foreach (string name in namesInFile)
 					{
-						System.Diagnostics.Debug.WriteLine(matches);
-						hasChanged = true;
-						break;
+						if (contentMatches.TryGetValue(name, out bool matches) && !matches)
+						{
+							hasChanged = true;
+							break;
+						}
 					}
+
+					if (hasChanged) break;
+				}
+
+				if (hasChanged && showMessage)
+				{
+					DialogBox.Show(
+						"It looks like something changed from the last time the program was opened.\n" +
+						"Notifiers that have been modified will appear as such when opening the notifier builder.",
+						"Changes Have Been Made",
+						DialogButtonDefaults.OK,
+						DialogIcon.Warning);
 				}
 
 				if (hasChanged) break;
-			}
-
-			if (hasChanged && showMessage)
-			{
-				DialogBox.Show(
-					"It looks like something changed from the last time the program was opened.\n" +
-					"Notifiers that have been modified will appear as such when opening the notifier builder.",
-					"Changes Have Been Made",
-					DialogButtonDefaults.OK,
-					DialogIcon.Warning);
 			}
 
 			return hasChanged;

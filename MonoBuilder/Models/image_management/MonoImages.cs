@@ -922,53 +922,57 @@ namespace MonoBuilder.Models.image_management
             if (ApplicationSettings == null)
                 return false;
 
-            var files = GetImageFiles();
-            if (files.Count == 0)
-                return false;
+			bool hasChanged = false;
+			string[] modes = ["images", "scenes", "gallery"];
+			foreach (var mode in modes)
+			{
+				SetDataMode(mode);
+				var files = GetImageFiles();
+				if (files.Count == 0)
+					return false;
 
-            bool imagesHaveChanged = false;
+				foreach (var (fileKey, _) in files)
+				{
+					// Get only the relevant synced images for this file - using fast lookup
+					var namesInFile = DataMode.Collection
+						.Where(i => i.IsSynced &&
+									(string.IsNullOrEmpty(i.FileKey)
+										? fileKey == ResolveImageFileKey()
+										: i.FileKey == fileKey))
+						.Select(i => i.Name)
+						.ToList();
 
-            foreach (var (fileKey, _) in files)
-            {
-                // Get only the relevant synced images for this file - using fast lookup
-                var namesInFile = DataMode.Collection
-                    .Where(i => i.IsSynced &&
-                                (string.IsNullOrEmpty(i.FileKey)
-                                    ? fileKey == ResolveImageFileKey()
-                                    : i.FileKey == fileKey))
-                    .Select(i => i.Name)
-                    .ToList();
+					if (namesInFile.Count == 0)
+						continue;
 
-                if (namesInFile.Count == 0)
-                    continue;
+					var contentMatches = ImageContentMatches(namesInFile, fileKey);
 
-                var contentMatches = ImageContentMatches(namesInFile, fileKey);
+					// Check for any mismatch
+					foreach (string name in namesInFile)
+					{
+						if (contentMatches.TryGetValue(name, out bool matches) && !matches)
+						{
+							hasChanged = true;
+							break;
+						}
+					}
 
-                // Check for any mismatch
-                foreach (string name in namesInFile)
-                {
-                    if (contentMatches.TryGetValue(name, out bool matches) && !matches)
-                    {
-                        imagesHaveChanged = true;
-                        break;
-                    }
-                }
+					if (hasChanged)
+						break;
+				}
 
-                if (imagesHaveChanged)
-                    break;
-            }
+				if (hasChanged && showMessage)
+				{
+					DialogBox.Show(
+						"It looks like something changed from the last time the program was opened.\n" +
+						"Images that have been modified will appear as such when opening the image builder.",
+						"Changes Have Been Made",
+						DialogButtonDefaults.OK,
+						DialogIcon.Warning);
+				}
+			}
 
-            if (imagesHaveChanged && showMessage)
-            {
-                DialogBox.Show(
-                    "It looks like something changed from the last time the program was opened.\n" +
-                    "Images that have been modified will appear as such when opening the image builder.",
-                    "Changes Have Been Made",
-                    DialogButtonDefaults.OK,
-                    DialogIcon.Warning);
-            }
-
-            return imagesHaveChanged;
+            return hasChanged;
         }
         #endregion
     }
