@@ -42,6 +42,8 @@ namespace MonoBuilder.Models.helpers
 		public bool HasTrailingOptions { get; } = false;
 		public List<EventOption>? TrailingOptions { get; set; }
 		public string? Placeholder { get; set; }
+		public string? StartValue { get; set; }
+		public string? EndValue { get; set; }
 
 		public bool MatchesPrefix(string prefix) =>
 			Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
@@ -53,7 +55,7 @@ namespace MonoBuilder.Models.helpers
 			if (Placeholder != null)
 			{
 				text += $" {Placeholder}";
-				return new InsertionResult(text, ++cursorOffset, Placeholder.Length, Placeholder);
+				return new InsertionResult(text, ++cursorOffset, Placeholder.Length, Placeholder, StartValue, EndValue);
 			}
 
 			return new InsertionResult(text, cursorOffset);

@@ -1,17 +1,10 @@
 ﻿using MonoBuilder.Commands;
-using MonoBuilder.Models;
-using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
 using MonoBuilder.Models.image_management;
 using MonoBuilder.Models.notification_management;
-using MonoBuilder.ViewModels._generic_models;
 using MonoBuilder.Views.ViewUtils;
 using System;
-using System.Collections.ObjectModel;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
-using static System.Resources.ResXFileRef;
 
 namespace MonoBuilder.ViewModels.NotifierModel
 {
@@ -72,7 +65,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 						foreach (Notification notification in SelectedEntities.ToArray())
 						{
 							notification.FileKey = targetFileKey;
-							NotifierData.UpdateNotification(notification.EntityID, notification);
+							NotifierData.UpdateData(notification.EntityID, notification);
 						}
 					}
 					else
@@ -113,7 +106,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 				}
 				else ModifyingNotifier.Icon = subtitle;
 
-				NotifierData.UpdateNotification(ModifyingNotifier.EntityID, ModifyingNotifier, false);
+				NotifierData.UpdateData(ModifyingNotifier.EntityID, ModifyingNotifier, false);
 			}
 			else
 			{
@@ -133,7 +126,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 				newNotifier.FileKey = fileKey;
 				newNotifier.Body = body;
 
-				NotifierData.AddNotification(newNotifier);
+				NotifierData.AddData(newNotifier);
 			}
 
 			NotifierData.SaveData();
@@ -216,16 +209,16 @@ namespace MonoBuilder.ViewModels.NotifierModel
 						if (question == DialogBoxResult.Retry ||
 							question == DialogBoxResult.Yes)
 						{
-							if (NotifierData.NotificationExistsInScript(notifier.EntityID))
+							if (NotifierData.EntityExistsInScript(notifier.EntityID))
 							{
-								NotifierData.RemoveNotificationFromScript(notifier.EntityID, false);
+								NotifierData.RemoveEntityFromScript(notifier.EntityID, false);
 							}
 						}
 
 						if (question == DialogBoxResult.Continue ||
 							question == DialogBoxResult.Yes)
 						{
-							NotifierData.RemoveNotification(notifier.EntityID);
+							NotifierData.RemoveData(notifier.EntityID);
 						}
 					}
 
@@ -265,7 +258,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 
 					foreach (Notification row in SelectedEntities)
 					{
-						var inScript = NotifierData.NotificationExistsInScript(row.Name, row.FileKey);
+						var inScript = NotifierData.EntityExistsInScript(row.Name, row.FileKey);
 
 						if (inScript)
 						{
@@ -305,14 +298,14 @@ namespace MonoBuilder.ViewModels.NotifierModel
 					foreach (var (notifier, inScript) in tags)
 					{
 						var type = Mode == "Messages" ? NotifierType.Message : NotifierType.Notification;
-						var content = NotifierData.ConvertToScriptContent(type, notifier);
+						var content = NotifierData.ConvertToScriptContent(notifier);
 						if (inScript)
 						{
-							NotifierData.UpdateNotificationInScript(notifier.Name, content);
+							NotifierData.UpdateEntityInScript(notifier.Name, content);
 						}
 						else
 						{
-							NotifierData.AddNotificationToScript(notifier.Name, content);
+							NotifierData.AddEntityToScript(notifier.Name, content);
 						}
 					}
 
@@ -339,7 +332,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 			{
 				bool isMessage = Mode == "Messages";
 				var type = isMessage ? NotifierType.Message : NotifierType.Notification;
-				var notifierData = NotifierData.SyncNotifications();
+				var notifierData = NotifierData.SyncData();
 				var duplicates = notifierData.Keys
 					.Where(name => NotifierData.ContainsName(name))
 					.ToList();
@@ -388,7 +381,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 								newNotifier.CloseAction = actionString;
 							}
 
-							NotifierData.UpdateNotification(notifierId, newNotifier);
+							NotifierData.UpdateData(notifierId, newNotifier);
 
 							notifierData.Remove(notifier);
 						}
@@ -400,12 +393,12 @@ namespace MonoBuilder.ViewModels.NotifierModel
 							notifierData.Remove(notifier);
 						}
 					}
-				}
 
-				foreach (Notification notifier in notifierData.Values)
-				{
-					notifier.IsSynced = true;
-					NotifierData.AddNotification(notifier);
+					foreach (Notification notifier in notifierData.Values)
+					{
+						notifier.IsSynced = true;
+						NotifierData.AddData(notifier);
+					}
 				}
 			}
 			catch

@@ -8,83 +8,55 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using System.Diagnostics;
 
 namespace MonoBuilder.Models.image_management
 {
     public class MonoImages : MonoSystem<MonoImage>
     {
-        private readonly AssetStore<MonoImage> _images = new() { TypeName = "Images" };
-        private readonly AssetStore<MonoImage> _scenes = new() { TypeName = "Scenes" };
-        private readonly AssetStore<MonoImage> _gallery = new() { TypeName = "Gallery" };
+        private readonly AssetStore<MonoImage> _images = new()
+		{
+			TypeName = "Images",
+			MasterGuideContent = new(
+				"Images",
+				"// IMAGES_INSERTION_POINT",
+				"// END_IMAGES_INSERTION_POINT")
+		};
+
+        private readonly AssetStore<MonoImage> _scenes = new()
+		{
+			TypeName = "Scenes",
+			MasterGuideContent = new(
+				"Scenes",
+				"// SCENES_INSERTION_POINT",
+				"// END_SCENES_INSERTION_POINT")
+		};
+        private readonly AssetStore<MonoImage> _gallery = new()
+		{
+			TypeName = "Gallery",
+			MasterGuideContent = new(
+				"Gallery",
+				"// GALLERY_INSERTION_POINT",
+				"// END_GALLERY_INSERTION_POINT")
+		};
 
         public override AssetStore<MonoImage> DataMode { get; set; }
 
-        public ObservableCollection<MonoImage> AllImages { get; private set; }
-        public ObservableCollection<MonoImage> AllScenes { get; private set; }
-        public ObservableCollection<MonoImage> AllGalleryImages { get; private set; }
-
         private static Regex ImageRegex { get; set; } = new(@"^([""'`]?)(?<name>.*)\1.*[:]*[""'`](?<content>.*)\1[,]?$", RegexOptions.Compiled);
-        //private static Regex AttributeRegex { get; set; } = new(@"^");
 		
         public MonoImages()
         {
-            AllImages = _images.Collection;
-            AllScenes = _scenes.Collection;
-            AllGalleryImages = _gallery.Collection;
+			AllDataModes = new()
+			{
+				[_images.TypeName.ToLower()] = _images,
+				[_scenes.TypeName.ToLower()] = _scenes,
+				[_gallery.TypeName.ToLower()] = _gallery
+			};
 
             DataMode = _images;
 
-			// Set up the content guide to be referenced.
-			ContentGuides = new()
-			{
-				{
-					"Images",
-					[
-						"// IMAGES_INSERTION_POINT",
-						"// END_IMAGES_INSERTION_POINT"
-					]
-				},
-				{
-					"Scenes",
-					[
-						"// SCENES_INSERTION_POINT",
-						"// END_SCENES_INSERTION_POINT"
-					]
-				},
-				{
-					"Gallery",
-					[
-						"// GALLERY_INSERTION_POINT",
-						"// END_GALLERY_INSERTION_POINT"
-					]
-				}
-			};
-
             LoadData();
         }
-
-        #region Mode Management
-        public void SetDataMode(string mode)
-        {
-            switch (mode)
-            {
-                case "images": DataMode = _images; break;
-                case "scenes": DataMode = _scenes; break;
-                case "gallery": DataMode = _gallery; break;
-            }
-        }
-
-        private AssetStore<MonoImage> GetDataMode(string mode)
-        {
-            return mode switch
-            {
-                "images" => _images,
-                "scenes" => _scenes,
-                "gallery" => _gallery,
-                _ => _images
-            };
-        }
-        #endregion
 
         #region Handle File Data
         private void LoadImage(XElement image, ObservableCollection<MonoImage> collectionType)
@@ -180,7 +152,7 @@ namespace MonoBuilder.Models.image_management
             SystemData = new XDocument(
                 new XDeclaration("1.0", "utf-8", "yes"),
                 new XElement("Root",
-                    new XElement(GetDataMode("images").TypeName,
+                    new XElement(GetDataMode("images")?.TypeName ?? string.Empty,
                         _images.Collection.Select(i => new XElement("Image",
                             new XAttribute("ImageID", i.EntityID),
                             new XAttribute("Name", i.Name),
@@ -189,7 +161,7 @@ namespace MonoBuilder.Models.image_management
                             new XAttribute("IsSynced", i.IsSynced)
                         ))
                     ),
-                    new XElement(GetDataMode("scenes").TypeName,
+                    new XElement(GetDataMode("scenes")?.TypeName ?? string.Empty,
                         _scenes.Collection.Select(s => new XElement("Scene",
                             new XAttribute("SceneID", s.EntityID),
                             new XAttribute("Name", s.Name),
@@ -198,7 +170,7 @@ namespace MonoBuilder.Models.image_management
                             new XAttribute("IsSynced", s.IsSynced)
                         ))
                     ),
-                    new XElement(GetDataMode("gallery").TypeName,
+                    new XElement(GetDataMode("gallery")?.TypeName ?? string.Empty,
                         _gallery.Collection.Select(s => new XElement("GalleryImage",
                             new XAttribute("SceneID", s.EntityID),
                             new XAttribute("Name", s.Name),
@@ -212,75 +184,13 @@ namespace MonoBuilder.Models.image_management
 
             SystemData.Save("data/images.xml");
         }
-
-        public void LoadSettings(AppSettings settings)
-        {
-            ApplicationSettings = settings;
-        }
-
-        private Dictionary<string, string> GetImageFiles()
-        {
-            if (ApplicationSettings == null)
-                return [];
-
-            var files = ApplicationSettings.GetAllFilePaths(DataMode.TypeName);
-            if (files.Count == 0)
-            {
-                var legacyPath = ApplicationSettings.GetFilePath(DataMode.TypeName);
-                if (!string.IsNullOrEmpty(legacyPath))
-                    files[DataMode.TypeName] = legacyPath;
-            }
-
-            return files;
-        }
-
-        private string? ResolveImageFileKey(string? fileKey = null)
-        {
-            var files = GetImageFiles();
-            if (files.Count == 0)
-                return null;
-
-            if (!string.IsNullOrWhiteSpace(fileKey) && files.ContainsKey(fileKey))
-                return fileKey;
-
-            if (!string.IsNullOrWhiteSpace(fileKey))
-            {
-                var prefixed = files.Keys
-                    .OrderBy(key => key)
-                    .FirstOrDefault(key => key.StartsWith(fileKey + ":", StringComparison.Ordinal));
-
-                if (prefixed != null)
-                    return prefixed;
-            }
-
-            return files.Keys.OrderBy(key => key).FirstOrDefault();
-        }
-
-        private string? ResolveImageFilePath(string? fileKey, out string resolvedFileKey)
-        {
-            resolvedFileKey = ResolveImageFileKey(fileKey) ?? string.Empty;
-            if (string.IsNullOrEmpty(resolvedFileKey))
-                return null;
-
-            return ApplicationSettings?.GetAllFilePaths().TryGetValue(resolvedFileKey, out string? filePath) == true
-                ? filePath
-                : null;
-        }
-
-        private string? ResolveImageFilePath(MonoImage? image, out string resolvedFileKey)
-        {
-            return ResolveImageFilePath(image?.FileKey, out resolvedFileKey);
-        }
         #endregion
 
-        private MonoImage? FindImage(string name) => DataMode.Collection.FirstOrDefault(i => i.Name == name);
-        private MonoImage? FindImage(int index) => DataMode.Collection.FirstOrDefault(i => i.EntityID == index);
-                        
         #region Sync images to the program
-        public Dictionary<string, MonoImage> SyncImages(bool duplicatesOnly = false)
+        public override Dictionary<string, MonoImage> SyncData(bool duplicatesOnly = false)
         {
             var images = new Dictionary<string, MonoImage>(StringComparer.Ordinal);
-            var files = GetImageFiles();
+            var files = GetDataFiles();
             if (files.Count == 0)
             {
                 DialogBox.Show(
@@ -291,12 +201,12 @@ namespace MonoBuilder.Models.image_management
                 throw new Exception("Bad file data...\nNo image files are configured.");
             }
 
-            var type = DataMode.TypeName;
+			var guide = DataMode.MasterGuideContent;
             foreach (var (fileKey, filePath) in files.OrderBy(entry => entry.Key))
             {
                 string[] content = File.ReadAllLines(filePath);
-                int start = Array.FindIndex(content, line => line.Trim() == ContentGuides[type][0]);
-                int end = Array.FindIndex(content, start + 1, line => line.Trim() == ContentGuides[type][1]);
+                int start = Array.FindIndex(content, line => line.Trim() == guide.GuideStart);
+                int end = Array.FindIndex(content, start + 1, line => line.Trim() == guide.GuideEnd);
 
                 if (start <= -1 || end <= -1) continue;
 
@@ -340,141 +250,14 @@ namespace MonoBuilder.Models.image_management
 
             return images;
         }
-        #endregion
+		#endregion
 
-        #region Handle image data in program
-        public bool CheckForDuplicates(MonoImage imageToCheck, bool checkScene = false)
+		#region Handle Image Data in File
+
+		#region Entity Checking Methods
+		public override Dictionary<string, bool> EntitiesExistInScript(HashSet<string> names)
         {
-            foreach (MonoImage image in DataMode.Collection)
-            {
-                if (image.Name == imageToCheck.Name)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public List<string> CheckForDuplicates(HashSet<MonoImage> imagesToCheck, bool checkScene = false)
-        {
-            List<string> list = new();
-            foreach (MonoImage image in DataMode.Collection)
-            {
-                if (imagesToCheck.Contains(image))
-                {
-                    list.Add(image.Name);
-                }
-            }
-
-            return list;
-        }
-
-        public void RebuildLookups()
-        {
-            DataMode.ByName.Clear();
-            DataMode.ById.Clear();
-
-            foreach (var img in DataMode.Collection)
-            {
-                DataMode.ByName[img.Name] = img;
-                DataMode.ById[img.EntityID] = img;
-            }
-        }
-
-        private void RebuildLookups(string type)
-        {
-            var dataMode = GetDataMode(type);
-
-            dataMode.ByName.Clear();
-            dataMode.ById.Clear();
-
-            foreach (var img in dataMode.Collection)
-            {
-                dataMode.ByName[img.Name] = img;
-                dataMode.ById[img.EntityID] = img;
-            }
-        }
-
-        public void AddImage(MonoImage image, bool shouldSave = true, bool isScene = false)
-        {
-            if (string.IsNullOrEmpty(image.FileKey))
-                image.FileKey = ResolveImageFileKey(DataMode.TypeName) ?? string.Empty;
-
-            image.EntityID = DataMode.NextId++;
-            DataMode.Collection.Add(image);
-
-            DataMode.ByName[image.Name] = image;
-            DataMode.ById[image.EntityID] = image;
-
-            if (shouldSave) SaveData();
-        }
-
-        public bool RemoveImage(int imageId, bool shouldSave = true, bool isScene = false)
-        {
-            if (!DataMode.ById.TryGetValue(imageId, out var image))
-                return false;
-
-            DataMode.ById.Remove(imageId);
-            DataMode.ByName.Remove(image.Name);
-            DataMode.Collection.RemoveAt(DataMode.Collection.IndexOf(image));
-            RebuildLookups();
-
-            if (shouldSave) SaveData();
-            return true;
-        }
-
-        public void RemoveImages(int[] imageIds, bool shouldSave = true, bool isScene = false)
-        {
-            if (imageIds == null || imageIds.Length == 0)
-                return;
-
-            var idsToRemove = new HashSet<int>(imageIds);
-
-            foreach (int id in idsToRemove)
-            {
-                if (DataMode.ById.TryGetValue(id, out var img))
-                {
-                    DataMode.ByName.Remove(img.Name);
-                    DataMode.ById.Remove(id);
-                }
-            }
-
-            DataMode.Collection.RemoveByIds(idsToRemove);
-
-            if (shouldSave) SaveData();
-        }
-
-        public bool ContainsName(string name) => DataMode.ByName.ContainsKey(name);
-        public MonoImage? CheckImage(string imageName) => DataMode.ByName.TryGetValue(imageName, out var img) ? img : null;
-        public MonoImage? CheckImage(int imageId) => DataMode.ById.TryGetValue(imageId, out var img) ? img : null;
-
-        public MonoImage UpdateImage(int imageId, MonoImage newData, bool shouldSave = true, bool isScene = false)
-        {
-            if (!DataMode.ById.TryGetValue(imageId, out var existing))
-                throw new KeyNotFoundException($"Image ID {imageId} not found");
-
-            existing.Name = newData.Name;
-            existing.Path = newData.Path;
-            existing.FileKey = newData.FileKey ?? existing.FileKey;
-            existing.IsSynced = newData.IsSynced;
-
-            if (existing.Name != newData.Name)
-            {
-                DataMode.ByName.Remove(existing.Name);
-                DataMode.ByName[newData.Name] = existing;
-            }
-
-            if (shouldSave) SaveData();
-
-            return existing;
-        }
-        #endregion
-
-        #region Handle image data in file
-        public Dictionary<string, bool> ImagesExistsInScript(HashSet<string> names)
-        {
-            var files = GetImageFiles();
+            var files = GetDataFiles();
             if (files.Count == 0)
             {
                 DialogBox.Show("Attempted to check image existence without a proper file path!",
@@ -482,7 +265,7 @@ namespace MonoBuilder.Models.image_management
                 return [];
             }
 
-            var type = DataMode.TypeName;
+			var guide = DataMode.MasterGuideContent;
             Dictionary<string, bool> namesInScript = names.ToDictionary(
                 name => name,
                 name => false);
@@ -496,12 +279,12 @@ namespace MonoBuilder.Models.image_management
                 {
                     string trimmed = line.Trim();
 
-                    if (trimmed == ContentGuides[type][0])
+                    if (trimmed == guide.GuideStart)
                     {
                         inImageSection = true;
                         continue;
                     }
-                    if (inImageSection && trimmed == ContentGuides[type][1])
+                    if (inImageSection && trimmed == guide.GuideEnd)
                         break;
 
                     if (inImageSection)
@@ -521,9 +304,9 @@ namespace MonoBuilder.Models.image_management
             return namesInScript;
         }
 
-        public bool ImageExistsInScript(string name, string? fileKey = null)
+        public override bool EntityExistsInScript(string name, string? fileKey = null)
         {
-            var files = GetImageFiles();
+            var files = GetDataFiles();
             if (files.Count == 0)
             {
                 DialogBox.Show("Attempted to check image existence without a proper file path!",
@@ -531,10 +314,10 @@ namespace MonoBuilder.Models.image_management
                 return false;
             }
 
-            var type = DataMode.TypeName;
+			var guide = DataMode.MasterGuideContent;
             var filesToCheck = string.IsNullOrWhiteSpace(fileKey)
                 ? files.OrderBy(entry => entry.Key)
-                : files.Where(entry => entry.Key == ResolveImageFileKey(fileKey));
+                : files.Where(entry => entry.Key == ResolveDataFileKey(fileKey));
 
             foreach (var (_, filePath) in filesToCheck)
             {
@@ -545,12 +328,12 @@ namespace MonoBuilder.Models.image_management
                 {
                     string trimmed = line.Trim();
 
-                    if (trimmed == ContentGuides[type][0])
+                    if (trimmed == guide.GuideStart)
                     {
                         inImagesSection = true;
                         continue;
                     }
-                    if (inImagesSection && trimmed == ContentGuides[type][1])
+                    if (inImagesSection && trimmed == guide.GuideEnd)
                         break;
 
                     if (inImagesSection)
@@ -562,27 +345,57 @@ namespace MonoBuilder.Models.image_management
                 }
             }
             return false;
-        }
+		}
 
-        public bool ImageExistsInScript(int imageId)
-        {
-            if (CheckImage(imageId) is not MonoImage image)
-                return false;
+		public override Dictionary<string, bool> EntityContentMatches(List<string> names, string? fileKey = null)
+		{
+			var results = names.ToDictionary(n => n, _ => false);
 
-            return ImageExistsInScript(image.Name, image.FileKey);
-        }
+			var filePath = ResolveDataFilePath(fileKey, out _);
+			if (filePath == null || names.Count == 0)
+				return results;
 
-        private string AddIndentation()
-        {
-            return ApplicationSettings?.GetIndentationType() switch
-            {
-                "Tabs" => "\t",
-                "Spaces" => new string(' ', ApplicationSettings.GetIndentationAmount()),
-                _ => new string(' ', 4)
-            };
-        }
+			var guide = DataMode.MasterGuideContent;
+			string[] fileContent = File.ReadAllLines(filePath);
+			int start = Array.FindIndex(fileContent, line => line.Trim() == guide.GuideStart);
+			int end = Array.FindIndex(fileContent, start + 1, line => line.Trim() == guide.GuideEnd);
 
-        public Dictionary<string, string?> ConvertToScriptContent(MonoImage image)
+			if (start == -1 || end == -1)
+				return results;
+
+			var remaining = new HashSet<string>(names);   // Still useful for early exit
+
+			string[] innerContent = fileContent[(start + 1)..end];
+
+			foreach (string rawLine in innerContent)
+			{
+				if (remaining.Count == 0)
+					break;
+
+				string line = rawLine.Trim();
+				var match = ImageRegex.Match(line);
+				if (!match.Success)
+					continue;
+
+				string imageName = match.Groups["name"].Value;
+				if (!remaining.Remove(imageName))   // Remove returns true only if it existed
+					continue;
+
+				string filePathValue = match.Groups["content"].Value;
+
+				// Fast dictionary lookup instead of FirstOrDefault
+				if (CheckData(imageName) is MonoImage image)
+				{
+					results[imageName] = image.Path == filePathValue;
+				}
+			}
+
+			return results;
+		}
+		#endregion
+
+		#region Conversion Methods
+		public override Dictionary<string, string?> ConvertToScriptContent(MonoImage image)
         {
             return new Dictionary<string, string?>
             {
@@ -591,7 +404,7 @@ namespace MonoBuilder.Models.image_management
             };
         }
 
-        private string? ConvertToScriptContent(Dictionary<string, string?> content)
+        protected override string? ConvertToScriptContent(Dictionary<string, string?> content)
         {
             if (content.TryGetValue("name", out string? name) &&
                 content.TryGetValue("path", out string? path) &&
@@ -603,37 +416,20 @@ namespace MonoBuilder.Models.image_management
 
             return null;
         }
+		#endregion
 
-        public void AddImageToScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
+		#region Engine File Manipulation
+		public override void AddEntityToScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
         {
-            string? fileKey = fileKeyParam ?? CheckImage(name)?.FileKey;
-            var filePath = ResolveImageFilePath(fileKey, out string resolvedFileKey);
-
-            if (filePath == null)
-            {
-                DialogBox.Show($"Failed to resolve file path for image \"{name}\".",
-                    "Bad File Path", DialogButtonDefaults.OK, DialogIcon.Error);
-                throw new Exception($"Bad file data for {name}");
-            }
-
+			(string filePath, string resolvedFileKey) = CheckKeyResolutionInFile(fileKeyParam, name);
             string tempPath = Path.GetTempFileName();
 
             try
             {
-                var type = DataMode.TypeName;
-                var lines = File.ReadAllLines(filePath).ToList();
+				var guide = DataMode.MasterGuideContent;
+				var lines = File.ReadAllLines(filePath).ToList();
 
-                int startIndex = lines.FindIndex(l => l.Trim() == ContentGuides[type][0]);
-                int endIndex = lines.FindIndex(startIndex + 1, l => l.Trim() == ContentGuides[type][1]);
-
-                if (startIndex == -1 || endIndex == -1)
-                {
-                    DialogBox.Show("Missing proper image section markers in script file.\n\n" +
-                        "You need opening and closing tags like:\n" +
-                        $"{ContentGuides[type][0]}\n    \"Example\": \"path.jpg\",\n{ContentGuides[type][1]}",
-                        "Missing Image Section", DialogButtonDefaults.OK, DialogIcon.Error);
-                    return;
-                }
+				(int startIndex, int endIndex) = GetPositionIndexInFile(lines, guide);
 
                 for (int i = endIndex - 1; i > startIndex; i--)
                 {
@@ -655,7 +451,7 @@ namespace MonoBuilder.Models.image_management
                     File.WriteAllLines(tempPath, lines);
                     FileWatcher.ReplaceFile(tempPath, filePath);
 
-                    if (CheckImage(name) is MonoImage image)
+                    if (CheckData(name) is MonoImage image)
                     {
                         image.FileKey = resolvedFileKey;
                         image.IsSynced = true;
@@ -680,12 +476,12 @@ namespace MonoBuilder.Models.image_management
             }
         }
 
-        public bool RemoveImageFromScript(int imageId, bool shouldSave = true)
+        public override bool RemoveEntityFromScript(int imageId, bool shouldSave = true)
         {
-            return RemoveImagesFromScript(new[] { imageId }, shouldSave);
+            return RemoveEntitiesFromScript(new[] { imageId }, shouldSave);
         }
 
-        public bool RemoveImagesFromScript(int[] imageIds, bool shouldSave = true)
+        public override bool RemoveEntitiesFromScript(int[] imageIds, bool shouldSave = true)
         {
             if (imageIds == null || imageIds.Length == 0)
                 return false;
@@ -695,7 +491,7 @@ namespace MonoBuilder.Models.image_management
 
             foreach (int id in idsToRemove)
             {
-                if (CheckImage(id) is MonoImage img)
+                if (CheckData(id) is MonoImage img)
                 {
                     img.IsSynced = false;
                     imagesToRemove.Add(img);
@@ -706,7 +502,7 @@ namespace MonoBuilder.Models.image_management
                 return false;
 
             var imagesByFile = imagesToRemove
-                .GroupBy(img => ResolveImageFilePath(img, out _))
+                .GroupBy(img => ResolveDataFilePath(img, out _))
                 .Where(g => g.Key != null)
                 .ToDictionary(g => g.Key!, g => g.ToList());
 
@@ -714,7 +510,7 @@ namespace MonoBuilder.Models.image_management
             {
                 foreach (var (filePath, imagesInFile) in imagesByFile)
                 {
-                    RemoveImagesFromSingleFile(filePath, imagesInFile);
+                    RemoveEntityFromSingleFile(filePath, imagesInFile);
                 }
 
                 if (shouldSave) SaveData();
@@ -729,7 +525,7 @@ namespace MonoBuilder.Models.image_management
             }
         }
 
-        private void RemoveImagesFromSingleFile(string filePath, List<MonoImage> imagesToRemove)
+        protected override void RemoveEntityFromSingleFile(string filePath, List<MonoImage> imagesToRemove)
         {
             string tempPath = Path.GetTempFileName();
             var namesToRemove = new HashSet<string>(imagesToRemove.Select(i => i.Name));
@@ -739,22 +535,22 @@ namespace MonoBuilder.Models.image_management
                 using (var reader = new StreamReader(filePath))
                 using (var writer = new StreamWriter(tempPath))
                 {
-                    var type = DataMode.TypeName;
-                    bool inImageSection = false;
+					var guide = DataMode.MasterGuideContent;
+					bool inImageSection = false;
                     string? line;
 
                     while ((line = reader.ReadLine()) != null)
                     {
                         string trimmed = line.Trim();
 
-                        if (trimmed == ContentGuides[type][0])
+                        if (trimmed == guide.GuideStart)
                         {
                             inImageSection = true;
                             writer.WriteLine(line);
                             continue;
                         }
 
-                        if (inImageSection && trimmed == ContentGuides[type][1])
+                        if (inImageSection && trimmed == guide.GuideEnd)
                         {
                             inImageSection = false;
                             writer.WriteLine(line);
@@ -783,18 +579,9 @@ namespace MonoBuilder.Models.image_management
             }
         }
 
-        public bool UpdateImageInScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
+        public override bool UpdateEntityInScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
         {
-            string? fileKey = fileKeyParam ?? CheckImage(name)?.FileKey;
-            var filePath = ResolveImageFilePath(fileKey, out string resolvedFileKey);
-
-            if (filePath == null)
-            {
-                DialogBox.Show($"Failed to resolve file path for image \"{name}\".",
-                    "Bad File Path", DialogButtonDefaults.OK, DialogIcon.Error);
-                throw new Exception($"Bad file data for {name}");
-            }
-
+			(string filePath, string resolvedFileKey) = CheckKeyResolutionInFile(fileKeyParam, name);
             string tempPath = Path.GetTempFileName();
             bool didUpdate = false;
 
@@ -802,23 +589,23 @@ namespace MonoBuilder.Models.image_management
             {
                 using (var reader = new StreamReader(filePath))
                 using (var writer = new StreamWriter(tempPath))
-                {
-                    var type = DataMode.TypeName;
-                    string? line;
+				{
+					var guide = DataMode.MasterGuideContent;
+					string? line;
                     bool inImagesSection = false;
 
                     while ((line = reader.ReadLine()) != null)
                     {
                         string trimmed = line.Trim();
 
-                        if (!inImagesSection && trimmed == ContentGuides[type][0])
+                        if (!inImagesSection && trimmed == guide.GuideStart)
                         {
                             inImagesSection = true;
                             writer.WriteLine(line);
                             continue;
                         }
 
-                        if (inImagesSection && trimmed == ContentGuides[type][1])
+                        if (inImagesSection && trimmed == guide.GuideEnd)
                         {
                             inImagesSection = false;
                             writer.WriteLine(line);
@@ -850,7 +637,7 @@ namespace MonoBuilder.Models.image_management
 
                 FileWatcher.ReplaceFile(tempPath, filePath);
 
-                if (CheckImage(name) is MonoImage image)
+                if (CheckData(name) is MonoImage image)
                 {
                     image.FileKey = resolvedFileKey;
                     image.IsSynced = true;
@@ -870,54 +657,10 @@ namespace MonoBuilder.Models.image_management
                 if (File.Exists(tempPath)) File.Delete(tempPath);
             }
         }
+		#endregion
 
-        public Dictionary<string, bool> ImageContentMatches(List<string> names, string? fileKey = null)
-        {
-            var results = names.ToDictionary(n => n, _ => false);
-
-            var filePath = ResolveImageFilePath(fileKey, out _);
-            if (filePath == null || names.Count == 0)
-                return results;
-
-            var type = DataMode.TypeName;
-            string[] fileContent = File.ReadAllLines(filePath);
-            int start = Array.FindIndex(fileContent, line => line.Trim() == ContentGuides[type][0]);
-            int end = Array.FindIndex(fileContent, start + 1, line => line.Trim() == ContentGuides[type][1]);
-
-            if (start == -1 || end == -1)
-                return results;
-
-            var remaining = new HashSet<string>(names);   // Still useful for early exit
-
-            string[] innerContent = fileContent[(start + 1)..end];
-
-            foreach (string rawLine in innerContent)
-            {
-                if (remaining.Count == 0)
-                    break;
-
-                string line = rawLine.Trim();
-                var match = ImageRegex.Match(line);
-                if (!match.Success)
-                    continue;
-
-                string imageName = match.Groups["name"].Value;
-                if (!remaining.Remove(imageName))   // Remove returns true only if it existed
-                    continue;
-
-                string filePathValue = match.Groups["content"].Value;
-
-                // Fast dictionary lookup instead of FirstOrDefault
-                if (CheckImage(imageName) is MonoImage image)
-                {
-                    results[imageName] = image.Path == filePathValue;
-                }
-            }
-
-            return results;
-        }
-
-        public bool CheckSynchronicity(bool showMessage = true)
+		#region Synchronicity Checking
+		public override bool CheckSynchronicity(bool showMessage = true)
         {
             if (ApplicationSettings == null)
                 return false;
@@ -927,7 +670,7 @@ namespace MonoBuilder.Models.image_management
 			foreach (var mode in modes)
 			{
 				SetDataMode(mode);
-				var files = GetImageFiles();
+				var files = GetDataFiles();
 				if (files.Count == 0)
 					return false;
 
@@ -937,7 +680,7 @@ namespace MonoBuilder.Models.image_management
 					var namesInFile = DataMode.Collection
 						.Where(i => i.IsSynced &&
 									(string.IsNullOrEmpty(i.FileKey)
-										? fileKey == ResolveImageFileKey()
+										? fileKey == ResolveDataFileKey()
 										: i.FileKey == fileKey))
 						.Select(i => i.Name)
 						.ToList();
@@ -945,7 +688,7 @@ namespace MonoBuilder.Models.image_management
 					if (namesInFile.Count == 0)
 						continue;
 
-					var contentMatches = ImageContentMatches(namesInFile, fileKey);
+					var contentMatches = EntityContentMatches(namesInFile, fileKey);
 
 					// Check for any mismatch
 					foreach (string name in namesInFile)
@@ -974,6 +717,8 @@ namespace MonoBuilder.Models.image_management
 
             return hasChanged;
         }
-        #endregion
-    }
+		#endregion
+
+		#endregion
+	}
 }

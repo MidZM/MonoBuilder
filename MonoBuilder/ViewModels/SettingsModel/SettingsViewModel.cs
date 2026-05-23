@@ -2,6 +2,7 @@
 using MonoBuilder.Commands;
 using MonoBuilder.Models;
 using MonoBuilder.Models.character_management;
+using MonoBuilder.Models.generics.enums;
 using MonoBuilder.Models.generics.interfaces;
 using MonoBuilder.ViewModels._generic_models;
 using System.Collections.ObjectModel;
@@ -11,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace MonoBuilder.ViewModels.SettingsModel
 {
@@ -184,7 +186,7 @@ namespace MonoBuilder.ViewModels.SettingsModel
 
 			string type = "Characters";
 			InitializeAvailableFiles(type);
-			InitializeDataTabs(type, CharacterData.AllCharacters);
+			InitializeDataTabs(type, CharacterData.DataMode.Collection);
 			InitializeMultiFileEntries();
 			SetupAutomaticNotifications();
 		}
@@ -211,6 +213,44 @@ namespace MonoBuilder.ViewModels.SettingsModel
 						foreach (FileEntry newFile in e.NewItems.OfType<FileEntry>())
 						{
 							newFile.PropertyChanged += File_PropertyChanged;
+						}
+					}
+				};
+			}
+
+			var characterTab = GetCharacterTab();
+			if (AvailableFiles.Count == 0 && characterTab != null)
+			{
+				characterTab.Files.CollectionChanged += (s, e) =>
+				{
+					Views.ViewUtils.DialogBox.Show(AvailableFiles.Count.ToString());
+					if (e.NewItems != null)
+					{
+						foreach (FileEntry newFile in e.NewItems.OfType<FileEntry>())
+						{
+							newFile.PropertyChanged += (ss, ee) =>
+							{
+								if (ee.PropertyName == nameof(FileEntry.Path))
+								{
+									DispatcherTimer? timer = new DispatcherTimer();
+									timer.Tick += (s, e) =>
+									{
+										var type = "Characters";
+										InitializeAvailableFiles(type);
+										InitializeDataTabs(type, CharacterData.DataMode.Collection);
+
+										AddCharactersCommand.RaiseCanExecuteChanged();
+										ImportCharactersCommand.RaiseCanExecuteChanged();
+										SaveToScriptCommand.RaiseCanExecuteChanged();
+
+										timer.Stop();
+										timer = null;
+									};
+
+									timer.Interval = TimeSpan.FromMilliseconds(50);
+									timer.Start();
+								}
+							};
 						}
 					}
 				};
@@ -267,6 +307,8 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			{
 				OnPropertyChanged(nameof(HasScriptFile));
 				AddCharactersCommand.RaiseCanExecuteChanged();
+				ImportCharactersCommand.RaiseCanExecuteChanged();
+				SaveToScriptCommand.RaiseCanExecuteChanged();
 			}
 		}
 		#endregion
@@ -321,7 +363,13 @@ namespace MonoBuilder.ViewModels.SettingsModel
 		private FileTabEntry? GetScriptTab()
 		{
 			return MixedEntries.Tabs.OfType<FileTabEntry>()
-					  .FirstOrDefault(t => t.Name == "Script");
+				.FirstOrDefault(t => t.Name == "Script");
+		}
+
+		private FileTabEntry? GetCharacterTab()
+		{
+			return MixedEntries.Tabs.OfType<FileTabEntry>()
+				.FirstOrDefault(t => t.Name == "Characters");
 		}
 		#endregion
 	}

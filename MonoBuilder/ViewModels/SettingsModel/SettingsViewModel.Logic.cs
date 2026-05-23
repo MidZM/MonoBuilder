@@ -2,6 +2,7 @@
 using MonoBuilder.Models;
 using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
+using MonoBuilder.Models.image_management;
 using MonoBuilder.Views.ViewUtils;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -33,26 +34,14 @@ namespace MonoBuilder.ViewModels.SettingsModel
 		public bool AutoSyncChecked
 		{
 			get => _autoSyncChecked;
-			set
-			{
-				if (SetProperty(ref _autoSyncChecked, value))
-				{
-					OnPropertyChanged(nameof(AutoSyncChecked));
-				}
-			}
+			set => SetProperty(ref _autoSyncChecked, value);
 		}
 
 		private bool _colorEnabledChecked = true;
 		public bool ColorEnabledChecked
 		{
 			get => _colorEnabledChecked;
-			set
-			{
-				if (SetProperty(ref _colorEnabledChecked, value))
-				{
-					OnPropertyChanged(nameof(ColorEnabledChecked));
-				}
-			}
+			set => SetProperty(ref _colorEnabledChecked, value);
 		}
 
 		public string[] IndentationTypes { get; } =
@@ -68,8 +57,6 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			{
 				if (SetProperty(ref _selectedIndentation, value))
 				{
-					OnPropertyChanged(nameof(SelectedIndentation));
-
 					ApplicationSettings.SetIndentationType(value);
 					Converter.ChangeIndentationType(value);
 
@@ -223,7 +210,7 @@ namespace MonoBuilder.ViewModels.SettingsModel
 
 			if (name != null && tag != null)
 			{
-				var character = new Normal(name, tag, color, path);
+				var character = new Character(name, tag, color, path);
 				if (window.ModifyingContent?.Count > 0)
 				{
 					window.ModifyingContent[index].TryGetValue("Tag", out string? tagValue);
@@ -235,7 +222,7 @@ namespace MonoBuilder.ViewModels.SettingsModel
 							modifiedCharacter.FileKey = fileKey;
 						}
 
-						CharacterData.UpdateCharacter(modifiedCharacter.EntityID, character);
+						CharacterData.UpdateData(modifiedCharacter.EntityID, character);
 					}
 				}
 				else
@@ -245,7 +232,7 @@ namespace MonoBuilder.ViewModels.SettingsModel
 						character.FileKey = fileKey;
 					}
 
-					CharacterData.AddCharacter(character);
+					CharacterData.AddData(character);
 				}
 			}
 		}
@@ -255,7 +242,7 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			var list = new List<Character>();
 			foreach (CharacterStructure character in characters)
 			{
-				Normal newCharacter = new(character.Name, character.Tag, character.Color, character.Directory);
+				Character newCharacter = new(character.Name, character.Tag, character.Color, character.Directory);
 				newCharacter.FileKey = character.FileKey;
 				newCharacter.IsSynced = true;
 
@@ -284,7 +271,7 @@ namespace MonoBuilder.ViewModels.SettingsModel
 						foreach (Character character in SelectedEntities.ToArray())
 						{
 							character.FileKey = targetFileKey;
-							CharacterData.UpdateCharacter(character.EntityID, character);
+							CharacterData.UpdateData(character.EntityID, character);
 						}
 
 						Converter.UnsetCharacterList();
@@ -366,16 +353,17 @@ namespace MonoBuilder.ViewModels.SettingsModel
 						if (question == DialogBoxResult.Retry ||
 							question == DialogBoxResult.Yes)
 						{
-							if (CharacterData.CharacterExistsInScript(character.EntityID))
+							DialogBox.Show(CharacterData.EntityExistsInScript(character.Tag, character.FileKey).ToString());
+							if (CharacterData.EntityExistsInScript(character.Tag, character.FileKey))
 							{
-								CharacterData.RemoveCharacterFromScript(character.EntityID, false);
+								CharacterData.RemoveEntityFromScript(character.EntityID, false);
 							}
 						}
 
 						if (question == DialogBoxResult.Continue ||
 							question == DialogBoxResult.Yes)
 						{
-							CharacterData.RemoveCharacter(character.EntityID);
+							CharacterData.RemoveData(character.EntityID);
 						}
 					}
 
@@ -414,20 +402,20 @@ namespace MonoBuilder.ViewModels.SettingsModel
 					string mergeDialog = "";
 					int index = 0;
 
-					foreach (Character row in SelectedEntities)
+					foreach (Character character in SelectedEntities)
 					{
-						var inScript = CharacterData.CharacterExistsInScript(row.Tag, row.FileKey);
+						var inScript = CharacterData.EntityExistsInScript(character.Tag, character.FileKey);
 
 						if (inScript)
 						{
 							if (currentCharacterMerge < maxCharacterMerge)
 							{
-								mergeDialog += $"- {row.Name} ({row.Tag})\n";
+								mergeDialog += $"- {character.Name} ({character.Tag})\n";
 							}
 							currentCharacterMerge++;
 						}
 
-						tags.Add((row, inScript));
+						tags.Add((character, inScript));
 
 						if (index == SelectedEntities.Count - 1)
 						{
@@ -458,11 +446,12 @@ namespace MonoBuilder.ViewModels.SettingsModel
 						var content = CharacterData.ConvertToScriptContent(character);
 						if (inScript)
 						{
-							CharacterData.UpdateCharacterInScript(character.Tag, content);
+							CharacterData.UpdateEntityInScript(character.Tag, content);
 						}
 						else
 						{
-							CharacterData.AddCharacterToScript(character.Tag, content);
+							CharacterData.AddEntityToScript(character.Tag, content);
+							character.IsSynced = true;
 						}
 					}
 
@@ -485,84 +474,82 @@ namespace MonoBuilder.ViewModels.SettingsModel
 
 		private void ExecuteImportCharactersCommand(object? parameters = null)
 		{
-			var characterData = CharacterData.SyncCharacters();
-			var characterStructList = new List<CharacterStructure>();
-			var characterList = new List<Character>();
-			var duplicates = new List<string>();
-
-			foreach (CharacterStructure character in characterData.Values)
+			try
 			{
-				if (CharacterData.CheckedDuplicates(character))
+				var characterData = CharacterData.SyncData();
+				//var characterStructList = new List<Character>();
+				//var characterList = new List<Character>();
+				var duplicates = characterData.Keys
+					.Where(tag => CharacterData.ContainsName(tag))
+					.ToList();
+
+				if (duplicates.Count > 0)
 				{
-					duplicates.Add(character.Tag);
-				}
-			}
+					int selectedCount = duplicates.Count;
+					int maxAmount = 10;
+					string phrasing = duplicates.Count > 1 ? "multiple characters" : "a character";
+					string tags = string.Join("\n", duplicates.Take(maxAmount).Select(c => $"- {c}"));
 
-			if (duplicates.Count > 0)
-			{
-				int selectedCount = duplicates.Count;
-				int maxAmount = 10;
-				string phrasing = duplicates.Count > 1 ? "multiple characters" : "a character";
-				string tags = string.Join("\n", duplicates.Take(maxAmount).Select(c => $"- {c}"));
-
-				if (selectedCount > maxAmount)
-				{
-					tags += $"\n- And {selectedCount - maxAmount} more...";
-				}
-
-				var result = DialogBox.Show(
-					$"Found {phrasing} with a similar tag that already exist...\nDo you want to merge them?\r\n{tags}",
-					"Confirm Merge Status",
-					DialogButtonDefaults.YesNo,
-					DialogIcon.Question);
-
-				if (result == DialogBoxResult.Yes)
-				{
-					foreach (string character in duplicates)
+					if (selectedCount > maxAmount)
 					{
-						int characterId = CharacterData.AllCharacters.First(c => c.Tag == character).EntityID;
-						string name = characterData[character].Name;
-						string tag = characterData[character].Tag;
-						string fileKey = characterData[character].FileKey;
-						string? color = characterData[character].Color;
-						string? directory = characterData[character].Directory;
-
-						Normal newNormal = new(name, tag, color, directory);
-
-						newNormal.FileKey = fileKey;
-						newNormal.IsSynced = true;
-
-						CharacterData.UpdateCharacter(characterId, newNormal);
-
-						characterData.Remove(character);
+						tags += $"\n- And {selectedCount - maxAmount} more...";
 					}
 
-					characterStructList.AddRange(characterData.Values.ToList());
-					characterList = NewCharactersFromData(characterStructList);
+					var result = DialogBox.Show(
+						$"Found {phrasing} with a similar tag that already exist...\nDo you want to merge them?\r\n{tags}",
+						"Confirm Merge Status",
+						DialogButtonDefaults.YesNo,
+						DialogIcon.Question);
+
+					if (result == DialogBoxResult.Yes)
+					{
+						foreach (string character in duplicates)
+						{
+							int characterId = CharacterData.AllCharacters.First(c => c.Tag == character).EntityID;
+							string name = characterData[character].Name;
+							string tag = characterData[character].Tag;
+							string fileKey = characterData[character].FileKey;
+							string? color = characterData[character].Color;
+							string? directory = characterData[character].Directory;
+
+							Character newCharacter = new(name, tag, color, directory);
+
+							newCharacter.FileKey = fileKey;
+							newCharacter.IsSynced = true;
+
+							CharacterData.UpdateData(characterId, newCharacter);
+
+							characterData.Remove(character);
+						}
+					}
+					else
+					{
+						foreach (string character in duplicates)
+						{
+							characterData.Remove(character);
+						}
+					}
 				}
 				else
 				{
-					foreach (string character in duplicates)
+					foreach (string characater in duplicates)
 					{
-						characterData.Remove(character);
+						characterData.Remove(characater);
 					}
-
-					characterStructList.AddRange(characterData.Values.ToList());
-					characterList = NewCharactersFromData(characterStructList);
 				}
-			}
-			else
-			{
-				characterStructList.AddRange(characterData.Values.ToList());
-				characterList = NewCharactersFromData(characterStructList);
-			}
 
-			foreach (Character character in characterList)
-			{
-				CharacterData.AddCharacter(character);
-			}
+				foreach (Character character in characterData.Values)
+				{
+					character.IsSynced = true;
+					CharacterData.AddData(character);
+				}
 
-			Converter.UnsetCharacterList();
+				Converter.UnsetCharacterList();
+			}
+			catch
+			{
+				return;
+			}
 		}
 
 		private void ExecuteSaveDataCommand(object? withClose)

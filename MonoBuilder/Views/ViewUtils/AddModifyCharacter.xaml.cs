@@ -393,7 +393,7 @@ namespace MonoBuilder.Views.ViewUtils
 
                 if (name != null && tag != null)
                 {
-                    var character = new Normal(name, tag, color, path);
+                    var character = new Character(name, tag, color, path);
                     if (ModifiyingCharacter.Count > 0)
                     {
                         var modifiedCharacter = ModifiyingCharacter[i];
@@ -404,7 +404,7 @@ namespace MonoBuilder.Views.ViewUtils
                                 modifiedCharacter.FileKey = fileKey;
                             }
 
-                            CharacterData.UpdateCharacter(modifiedCharacter.EntityID, character);
+                            CharacterData.UpdateData(modifiedCharacter.EntityID, character);
                         }
                     }
                     else
@@ -414,7 +414,7 @@ namespace MonoBuilder.Views.ViewUtils
                             character.FileKey = fileKey;
                         }
 
-                        CharacterData.AddCharacter(character);
+                        CharacterData.AddData(character);
                     }
                 }
             }

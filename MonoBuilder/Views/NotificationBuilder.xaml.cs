@@ -83,7 +83,7 @@ namespace MonoBuilder.Views
 							foreach (Notification notif in selectedNotifiers)
 							{
 								notif.FileKey = targetFileKey;
-								context?.NotifierData.UpdateNotification(notif.EntityID, notif);
+								context?.NotifierData.UpdateData(notif.EntityID, notif);
 							}
 						}
 						else

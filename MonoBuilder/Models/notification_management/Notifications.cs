@@ -1,4 +1,5 @@
 ﻿using MonoBuilder.Models.generics.enums;
+using MonoBuilder.Models.helpers;
 using MonoBuilder.Views.ViewUtils;
 using System;
 using System.Collections.ObjectModel;
@@ -12,79 +13,50 @@ namespace MonoBuilder.Models.notification_management
 {
 	public class Notifications : MonoSystem<Notification>
 	{
-		private AssetStore<Notification> _messages = new() { TypeName = "Messages", TypeBody = "MessageType" };
-		private AssetStore<Notification> _notifications = new() { TypeName = "Notifications", TypeBody = "NotificationType" };
+		private AssetStore<Notification> _messages = new()
+		{
+			TypeName = "Messages",
+			TypeBody = "MessageType",
+			MasterGuideContent = new(
+				"Messages",
+				"// MESSAGES_INSERTION_POINT",
+				"// END_MESSAGES_INSERTION_POINT"),
+			ChildGuideContent = new(
+				"MessageType",
+				"// MESSAGE_START",
+				"// MESSAGE_END")
+		};
+		private AssetStore<Notification> _notifications = new()
+		{
+			TypeName = "Notifications",
+			TypeBody = "NotificationType",
+			MasterGuideContent = new(
+				"Notifications",
+				"// NOTIFICATIONS_INSERTION_POINT",
+				"// END_NOTIFICATIONS_INSERTION_POINT"),
+			ChildGuideContent = new(
+				"NotificationType",
+				"// NOTIFICATION_START",
+				"// NOTIFICATION_END")
+		};
 
 		public override AssetStore<Notification> DataMode { get; set; }
-
-		public ObservableCollection<Notification> AllMessages { get; private set; }
-		public ObservableCollection<Notification> AllNotifications { get; private set; }
 
 		private static Regex BodyRegex = new(@"^([""'`]?)(?<id>.*)\1.*[:]*[\{] (// MESSAGE_START|// NOTIFICATION_START)$", RegexOptions.Compiled);
 		private static Regex AttributeRegex = new(@"^([""'`]?)(?<key>.*)\1[:] (?<attr>.*)$", RegexOptions.Compiled);
 
 		public Notifications()
 		{
-			AllMessages = _messages.Collection;
-			AllNotifications = _notifications.Collection;
+			AllDataModes = new()
+			{
+				[_messages.TypeName.ToLower()] = _messages,
+				[_notifications.TypeName.ToLower()] = _notifications
+			};
 
 			DataMode = _messages;
 
-			ContentGuides = new()
-			{
-				{
-					"Messages",
-					[
-						"// MESSAGES_INSERTION_POINT",
-						"// END_MESSAGES_INSERTION_POINT"
-					]
-				},
-				{
-					"MessageType",
-					[
-						"// MESSAGE_START",
-						"// MESSAGE_END"
-					]
-				},
-				{
-					"Notifications",
-					[
-						"// NOTIFICATIONS_INSERTION_POINT",
-						"// END_NOTIFICATIONS_INSERTION_POINT"
-					]
-				},
-				{
-					"NotificationType",
-					[
-						"// NOTIFICATION_START",
-						"// NOTIFICATION_END"
-					]
-				}
-			};
-
 			LoadData();
 		}
-
-		#region Mode Management
-		public void SetDataMode(string mode)
-		{
-			switch (mode)
-			{
-				case "messages": DataMode = _messages; break;
-				case "notifications": DataMode = _notifications; break;
-			}
-		}
-
-		public AssetStore<Notification> GetDataMode(string mode)
-		{
-			return mode switch
-			{
-				"messages" => _messages,
-				"notifications" => _notifications,
-				_ => _messages
-			};
-		}
-		#endregion
 
 		#region Handle File Data
 		private void LoadNotification(XElement element, NotifierType type, ObservableCollection<Notification> collectionType)
@@ -173,7 +145,7 @@ namespace MonoBuilder.Models.notification_management
 			SystemData = new XDocument(
 				new XDeclaration("1.0", "utf-8", "yes"),
 				new XElement("Root",
-					new XElement(GetDataMode("messages").TypeName,
+					new XElement(GetDataMode("messages")?.TypeName ?? string.Empty,
 						_messages.Collection.Select(m => new XElement("Message",
 							new XAttribute("DataID", m.EntityID),
 							new XAttribute("NotificationID", m.Name),
@@ -185,7 +157,7 @@ namespace MonoBuilder.Models.notification_management
 							new XCData(m.Body ?? string.Empty)
 						))
 					),
-					new XElement(GetDataMode("notifications").TypeName,
+					new XElement(GetDataMode("notifications")?.TypeName ?? string.Empty,
 						_notifications.Collection.Select(n => new XElement("Notification",
 							new XAttribute("DataID", n.EntityID),
 							new XAttribute("NotificationID", n.Name),
@@ -201,75 +173,13 @@ namespace MonoBuilder.Models.notification_management
 
 			SystemData.Save("data/notifications.xml");
 		}
-
-		public void LoadSettings(AppSettings settings)
-		{
-			ApplicationSettings = settings;
-		}
-
-		private Dictionary<string, string> GetNotificationFiles()
-		{
-			if (ApplicationSettings == null)
-				return [];
-
-			var files = ApplicationSettings.GetAllFilePaths(DataMode.TypeName);
-			if (files.Count == 0)
-			{
-				var legacyPath = ApplicationSettings.GetFilePath(DataMode.TypeName);
-				if (!string.IsNullOrEmpty(legacyPath))
-					files[DataMode.TypeName] = legacyPath;
-			}
-
-			return files;
-		}
-
-		private string? ResolveNotificationFileKey(string? fileKey = null)
-		{
-			var files = GetNotificationFiles();
-			if (files.Count == 0)
-				return null;
-
-			if (!string.IsNullOrWhiteSpace(fileKey) && files.ContainsKey(fileKey))
-				return fileKey;
-
-			if (!string.IsNullOrWhiteSpace(fileKey))
-			{
-				var prefixed = files.Keys
-					.OrderBy(key => key)
-					.FirstOrDefault(key => key.StartsWith(fileKey + ":", StringComparison.Ordinal));
-
-				if (prefixed != null)
-					return prefixed;
-			}
-
-			return files.Keys.OrderBy(key => key).FirstOrDefault();
-		}
-
-		private string? ResolveNotificationFilePath(string? fileKey, out string resolvedFileKey)
-		{
-			resolvedFileKey = ResolveNotificationFileKey(fileKey) ?? string.Empty;
-			if (string.IsNullOrEmpty(resolvedFileKey))
-				return null;
-
-			return ApplicationSettings?.GetAllFilePaths().TryGetValue(resolvedFileKey, out string? filePath) == true
-				? filePath
-				: null;
-		}
-
-		private string? ResolveNotificationFilePath(Notification? notification, out string resolvedFileKey)
-		{
-			return ResolveNotificationFilePath(notification?.FileKey, out resolvedFileKey);
-		}
 		#endregion
 
-		private Notification? FindNotification(string name) => DataMode.Collection.FirstOrDefault(i => i.Name == name);
-		private Notification? FindNotification(int index) => DataMode.Collection.FirstOrDefault(i => i.EntityID == index);
-
-		#region Sync notifiers to the program
-		public Dictionary<string, Notification> SyncNotifications(bool duplicatesOnly = false)
+		#region Sync Notifiers to the Program
+		public override Dictionary<string, Notification> SyncData(bool duplicatesOnly = false)
 		{
 			var notifications = new Dictionary<string, Notification>(StringComparer.Ordinal);
-			var files = GetNotificationFiles();
+			var files = GetDataFiles();
 
 			if (files.Count == 0)
 			{
@@ -282,14 +192,15 @@ namespace MonoBuilder.Models.notification_management
 			}
 
 			var type = DataMode.TypeName;
-			var typeBody = DataMode.TypeBody!;
+			var masterGuide = DataMode.MasterGuideContent;
+			var childGuide = DataMode.ChildGuideContent!;
 			var notifierType = type == "Messages" ? NotifierType.Message : NotifierType.Notification;
 
 			foreach (var (fileKey, filePath) in files.OrderBy(entry => entry.Key))
 			{
 				string[] content = File.ReadAllLines(filePath);
-				int start = Array.FindIndex(content, line => line.Trim() == ContentGuides[type][0]);
-				int end = Array.FindIndex(content, start + 1, line => line.Trim() == ContentGuides[type][1]);
+				int start = Array.FindIndex(content, line => line.Trim() == masterGuide.GuideStart);
+				int end = Array.FindIndex(content, start + 1, line => line.Trim() == masterGuide.GuideEnd);
 
 				if (start <= -1 || end <= -1)
 					continue;
@@ -304,8 +215,8 @@ namespace MonoBuilder.Models.notification_management
 					string line = rawData.Trim();
 
 					var bodyResult = BodyRegex.Match(line);
-					bool isBlockEnd = line.StartsWith("} " + ContentGuides[typeBody][1]) ||
-									  line.StartsWith("}, " + ContentGuides[typeBody][1]);
+					bool isBlockEnd = line.StartsWith("} " + childGuide.GuideEnd) ||
+									  line.StartsWith("}, " + childGuide.GuideEnd);
 
 					if (bodyResult.Success)
 					{
@@ -426,198 +337,7 @@ namespace MonoBuilder.Models.notification_management
 		}
 		#endregion
 
-		#region Handle notifier data in program
-		public bool CheckForDuplicates(Notification notificationToCheck)
-		{
-			foreach (Notification notification in DataMode.Collection)
-			{
-				if (notification.Name == notificationToCheck.Name)
-					return true;
-			}
-			return false;
-		}
-
-		public List<string> CheckForDuplicates(HashSet<Notification> notificationsToCheck)
-		{
-			List<string> list = new();
-			foreach (Notification notification in DataMode.Collection)
-			{
-				if (notificationsToCheck.Contains(notification))
-					list.Add(notification.Name);
-			}
-			return list;
-		}
-
-		public void RebuildLookups()
-		{
-			DataMode.ByName.Clear();
-			DataMode.ById.Clear();
-
-			foreach (var notif in DataMode.Collection)
-			{
-				DataMode.ByName[notif.Name] = notif;
-				DataMode.ById[notif.EntityID] = notif;
-			}
-		}
-
-		private void RebuildLookups(string type)
-		{
-			var dataMode = GetDataMode(type);
-
-			dataMode.ByName.Clear();
-			dataMode.ById.Clear();
-
-			foreach (var notif in dataMode.Collection)
-			{
-				dataMode.ByName[notif.Name] = notif;
-				dataMode.ById[notif.EntityID] = notif;
-			}
-		}
-
-		public void AddNotification(Notification notification, bool shouldSave = true)
-		{
-			if (string.IsNullOrEmpty(notification.FileKey))
-				notification.FileKey = ResolveNotificationFileKey(DataMode.TypeName) ?? string.Empty;
-
-			notification.EntityID = DataMode.NextId++;
-			DataMode.Collection.Add(notification);
-
-			DataMode.ByName[notification.Name] = notification;
-			DataMode.ById[notification.EntityID] = notification;
-
-			if (shouldSave) SaveData();
-		}
-
-		public bool RemoveNotification(int notificationId, bool shouldSave = true)
-		{
-			if (!DataMode.ById.TryGetValue(notificationId, out var notif))
-				return false;
-
-			DataMode.ById.Remove(notificationId);
-			DataMode.ByName.Remove(notif.Name);
-			DataMode.Collection.RemoveAt(DataMode.Collection.IndexOf(notif));
-			RebuildLookups();
-
-			if (shouldSave) SaveData();
-			return true;
-		}
-
-		public void RemoveNotifications(int[] notificationIds, bool shouldSave = true)
-		{
-			if (notificationIds == null || notificationIds.Length == 0)
-				return;
-
-			var idsToRemove = new HashSet<int>(notificationIds);
-
-			foreach (int id in idsToRemove)
-			{
-				if (DataMode.ById.TryGetValue(id, out var notif))
-				{
-					DataMode.ByName.Remove(notif.Name);
-					DataMode.ById.Remove(id);
-				}
-			}
-
-			DataMode.Collection.RemoveByIds(idsToRemove);
-
-			if (shouldSave) SaveData();
-		}
-
-		public bool ContainsName(string name) => DataMode.ByName.ContainsKey(name);
-		public Notification? CheckNotification(string notificationName) => DataMode.ByName.TryGetValue(notificationName, out var notif) ? notif : null;
-		public Notification? CheckNotification(int notificationId) => DataMode.ById.TryGetValue(notificationId, out var notif) ? notif : null;
-
-		public Notification UpdateNotification(int notificationId, Notification newData, bool shouldSave = true)
-		{
-			if (!DataMode.ById.TryGetValue(notificationId, out var existing))
-				throw new KeyNotFoundException($"Notification ID {notificationId} not found");
-
-			string oldName = existing.Name;
-
-			existing.Name = newData.Name;
-			existing.Title = newData.Title;
-			existing.Subtitle = newData.Subtitle;
-			existing.Body = newData.Body;
-			existing.Icon = newData.Icon;
-			existing.FileKey = newData.FileKey ?? existing.FileKey;
-			existing.IsSynced = newData.IsSynced;
-
-			if (oldName != newData.Name)
-			{
-				DataMode.ByName.Remove(oldName);
-				DataMode.ByName[newData.Name] = existing;
-			}
-
-			if (shouldSave) SaveData();
-
-			return existing;
-		}
-		#endregion
-
-		#region Utility File Methods
-		private (string, string) CheckKeyResolutionInFile(string? fileKeyParam, string name)
-		{
-			string? fileKey = fileKeyParam ?? CheckNotification(name)?.FileKey;
-			var filePath = ResolveNotificationFilePath(fileKey, out string resolvedFileKey);
-
-			if (filePath == null)
-			{
-				DialogBox.Show($"Failed to resolve file path for notifier \"{name}\".",
-					"Bad File Path", DialogButtonDefaults.OK, DialogIcon.Error);
-				throw new ArgumentOutOfRangeException($"Bad file data for {name}");
-			}
-
-			return (filePath, resolvedFileKey);
-		}
-
-		private (int, int) GetPositionIndexInFile(List<string> lines, string type, string typeBody, string? name = null)
-		{
-			int startIndex = name == null
-				? lines.FindIndex(l => l.Trim() == ContentGuides[type][0])
-				: lines.FindIndex(l => l.Contains(name) && l.TrimEnd().EndsWith(ContentGuides[typeBody][0]));
-			int endIndex = name == null
-				? lines.FindIndex(startIndex + 1, l => l.Trim() == ContentGuides[type][1])
-				: lines.FindIndex(startIndex + 1, l => l.TrimEnd().EndsWith(ContentGuides[typeBody][1]));
-
-			if (startIndex == -1 || endIndex == -1)
-			{
-				DialogBox.Show(
-					$"Missing proper notification section markers in script file.\n\n" +
-					$"You need opening and closing tags like:\n" +
-					$"{ContentGuides[type][0]}\n{AddIndentation()}\"Example\": {{ {ContentGuides[typeBody][0]}\n" +
-					$"{AddIndentation()}{AddIndentation()}\"title\": \"...\",\n" +
-					$"{AddIndentation()}}} {ContentGuides[typeBody][1]}\n{ContentGuides[type][1]}",
-					"Missing Notification Section", DialogButtonDefaults.OK, DialogIcon.Error);
-
-				string phrasing = name == null ? "base" : "element";
-				throw new IndexOutOfRangeException($"Failed to find opening and closing {phrasing} tags in the selected file...");
-			}
-
-			return (startIndex, endIndex);
-		}
-		#endregion
-
-		#region Handle notifier data in file
-		private string AddIndentation()
-		{
-			return ApplicationSettings?.GetIndentationType() switch
-			{
-				"Tabs" => "\t",
-				"Spaces" => new string(' ', ApplicationSettings.GetIndentationAmount()),
-				_ => new string(' ', 4)
-			};
-		}
-
-		private int FindFirstNonWhitespaceIndex(string input)
-		{
-			for (int i = 0; i < input.Length; i++)
-			{
-				if (!char.IsWhiteSpace(input[i]))
-					return i;
-			}
-			return -1;
-		}
-
+		#region Handle Notifier Data in Files
 		private string ProcessAttributeLine(string key, string? value)
 		{
 			if (value != null && value.Contains('\n'))
@@ -629,60 +349,10 @@ namespace MonoBuilder.Models.notification_management
 			return $"\"{key}\": \"{value?.Replace("\"", "\\\"") ?? string.Empty}\"";
 		}
 
-		public Dictionary<string, string?> ConvertToScriptContent(NotifierType type, Notification notification)
+		#region Entity Checking Methods
+		public override Dictionary<string, bool> EntitiesExistInScript(HashSet<string> names)
 		{
-			var dict = new Dictionary<string, string?>
-			{
-				["id"] = notification.Name,
-				["title"] = notification.Title,
-				["body"] = notification.Body
-			};
-
-			if (type == NotifierType.Message)
-			{
-				dict["subtitle"] = notification.Subtitle;
-				dict["actionString"] = notification.CloseAction;
-			}
-			else if (type == NotifierType.Notification)
-			{
-				dict["icon"] = notification.Icon;
-			}
-
-			return dict;
-		}
-
-		private string? ConvertToScriptContent(Dictionary<string, string?> content, bool shouldAddComma = false)
-		{
-			if (!content.TryGetValue("id", out string? id) || string.IsNullOrEmpty(id))
-				return null;
-
-			var typeBody = DataMode.TypeBody!;
-			string indent = AddIndentation();
-			string comma = shouldAddComma ? "," : string.Empty;
-			var sb = new StringBuilder();
-
-			sb.AppendLine($"{indent}\"{id}\": {{ {ContentGuides[typeBody][0]}");
-
-			string[] knownKeys = ["title", "subtitle", "body", "icon", "actionString"];
-			var toWrite = knownKeys
-				.Where(k => content.TryGetValue(k, out string? v) && !string.IsNullOrEmpty(v))
-				.ToList();
-
-			for (int i = 0; i < toWrite.Count; i++)
-			{
-				string key = toWrite[i];
-				string? value = content[key];
-				bool isLast = i == toWrite.Count - 1;
-				sb.AppendLine($"{indent}{indent}{ProcessAttributeLine(key, value)}{(isLast ? string.Empty : ",")}");
-			}
-
-			sb.Append($"{indent}}}{comma} {ContentGuides[typeBody][1]}");
-			return sb.ToString();
-		}
-
-		public Dictionary<string, bool> NotificationsExistsInScript(HashSet<string> names)
-		{
-			var files = GetNotificationFiles();
+			var files = GetDataFiles();
 			if (files.Count == 0)
 			{
 				DialogBox.Show("Attempted to check notification existence without a proper file path!",
@@ -690,7 +360,7 @@ namespace MonoBuilder.Models.notification_management
 				return [];
 			}
 
-			var type = DataMode.TypeName;
+			var masterGuide = DataMode.MasterGuideContent;
 			var namesInScript = names.ToDictionary(name => name, _ => false);
 
 			foreach (var (_, filePath) in files)
@@ -702,8 +372,8 @@ namespace MonoBuilder.Models.notification_management
 				{
 					string trimmed = line.Trim();
 
-					if (trimmed == ContentGuides[type][0]) { inSection = true; continue; }
-					if (inSection && trimmed == ContentGuides[type][1]) break;
+					if (trimmed == masterGuide.GuideStart) { inSection = true; continue; }
+					if (inSection && trimmed == masterGuide.GuideEnd) break;
 
 					if (inSection)
 					{
@@ -717,9 +387,9 @@ namespace MonoBuilder.Models.notification_management
 			return namesInScript;
 		}
 
-		public bool NotificationExistsInScript(string name, string? fileKey = null)
+		public override bool EntityExistsInScript(string name, string? fileKey = null)
 		{
-			var files = GetNotificationFiles();
+			var files = GetDataFiles();
 			if (files.Count == 0)
 			{
 				DialogBox.Show("Attempted to check notification existence without a proper file path!",
@@ -728,9 +398,10 @@ namespace MonoBuilder.Models.notification_management
 			}
 
 			var type = DataMode.TypeName;
+			var masterGuide = DataMode.MasterGuideContent;
 			var filesToCheck = string.IsNullOrWhiteSpace(fileKey)
 				? files.OrderBy(entry => entry.Key)
-				: files.Where(entry => entry.Key == ResolveNotificationFileKey(fileKey));
+				: files.Where(entry => entry.Key == ResolveDataFileKey(fileKey));
 
 			foreach (var (_, filePath) in filesToCheck)
 			{
@@ -741,8 +412,8 @@ namespace MonoBuilder.Models.notification_management
 				{
 					string trimmed = line.Trim();
 
-					if (trimmed == ContentGuides[type][0]) { inSection = true; continue; }
-					if (inSection && trimmed == ContentGuides[type][1]) break;
+					if (trimmed == masterGuide.GuideStart) { inSection = true; continue; }
+					if (inSection && trimmed == masterGuide.GuideEnd) break;
 
 					if (inSection)
 					{
@@ -756,255 +427,20 @@ namespace MonoBuilder.Models.notification_management
 			return false;
 		}
 
-		public bool NotificationExistsInScript(int notificationId)
-		{
-			if (CheckNotification(notificationId) is not Notification notif)
-				return false;
-
-			return NotificationExistsInScript(notif.Name, notif.FileKey);
-		}
-
-		public void AddNotificationToScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
-		{
-			(string filePath, string resolvedFileKey) = CheckKeyResolutionInFile(fileKeyParam, name);
-			string tempPath = Path.GetTempFileName();
-
-			try
-			{
-				var lines = File.ReadAllLines(filePath).ToList();
-				var type = DataMode.TypeName;
-				var typeBody = DataMode.TypeBody!;
-
-				(int startIndex, int endIndex) = GetPositionIndexInFile(lines, type, typeBody);
-
-				// Ensure the last block's closing brace has a trailing comma
-				for (int i = endIndex - 1; i > startIndex; i--)
-				{
-					string trimmed = lines[i].TrimEnd();
-					if (!string.IsNullOrWhiteSpace(trimmed))
-					{
-						if (trimmed.EndsWith("} " + ContentGuides[typeBody][1]))
-							lines[i] = lines[i].Replace("} ", "}, ");
-						break;
-					}
-				}
-
-				if (ConvertToScriptContent(content) is string newBlock)
-				{
-					// Insert a blank separator line then the block lines before the end marker
-					var blockLines = newBlock.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
-					lines.Insert(endIndex, string.Empty);
-					for (int i = blockLines.Count - 1; i >= 0; i--)
-						lines.Insert(endIndex + 1, blockLines[i]);
-
-					File.WriteAllLines(tempPath, lines);
-					FileWatcher.ReplaceFile(tempPath, filePath);
-
-					if (CheckNotification(name) is Notification notif)
-					{
-						notif.FileKey = resolvedFileKey;
-						notif.IsSynced = true;
-						SaveData();
-					}
-				}
-				else
-				{
-					DialogBox.Show($"Failed to convert notifier data to script format for \"{name}\".",
-						"Conversion Error", DialogButtonDefaults.OK, DialogIcon.Error);
-				}
-			}
-			catch (Exception ex)
-			{
-				DialogBox.Show($"Failed to add notifier \"{name}\" to script.\n\n{ex}",
-					"Add Failed", DialogButtonDefaults.OK, DialogIcon.Error);
-				throw;
-			}
-			finally
-			{
-				if (File.Exists(tempPath)) File.Delete(tempPath);
-			}
-		}
-
-		public bool RemoveNotificationFromScript(int notificationId, bool shouldSave = true)
-		{
-			return RemoveNotificationsFromScript(new[] { notificationId }, shouldSave);
-		}
-
-		public bool RemoveNotificationsFromScript(int[] notificationIds, bool shouldSave = true)
-		{
-			if (notificationIds == null || notificationIds.Length == 0)
-				return false;
-
-			var idsToRemove = new HashSet<int>(notificationIds);
-			var notificationsToRemove = new List<Notification>();
-
-			foreach (int id in idsToRemove)
-			{
-				if (CheckNotification(id) is Notification notif)
-				{
-					notif.IsSynced = false;
-					notificationsToRemove.Add(notif);
-				}
-			}
-
-			if (notificationsToRemove.Count == 0)
-				return false;
-
-			var notificationsByFile = notificationsToRemove
-				.GroupBy(notif => ResolveNotificationFilePath(notif, out _))
-				.Where(g => g.Key != null)
-				.ToDictionary(g => g.Key!, g => g.ToList());
-
-			try
-			{
-				foreach (var (filePath, notificationsInFile) in notificationsByFile)
-					RemoveNotificationsFromSingleFile(filePath, notificationsInFile);
-
-				if (shouldSave) SaveData();
-				return true;
-			}
-			catch (Exception ex)
-			{
-				DialogBox.Show($"Failed to remove notification data from script.\n\n{ex}",
-					"Remove Failed", DialogButtonDefaults.OK, DialogIcon.Error);
-				throw;
-			}
-		}
-
-		private void RemoveNotificationsFromSingleFile(string filePath, List<Notification> notificationsToRemove)
-		{
-			string tempPath = Path.GetTempFileName();
-			var namesToRemove = new HashSet<string>(notificationsToRemove.Select(n => n.Name));
-
-			try
-			{
-				using (var reader = new StreamReader(filePath))
-				using (var writer = new StreamWriter(tempPath))
-				{
-					var type = DataMode.TypeName;
-					var typeBody = DataMode.TypeBody!;
-					bool inSection = false;
-					bool isRemoving = false;
-					string? line;
-
-					while ((line = reader.ReadLine()) != null)
-					{
-						string trimmed = line.Trim();
-
-						if (!inSection && trimmed == ContentGuides[type][0])
-						{
-							inSection = true;
-							writer.WriteLine(line);
-							continue;
-						}
-
-						if (inSection && trimmed == ContentGuides[type][1])
-						{
-							inSection = false;
-							writer.WriteLine(line);
-							continue;
-						}
-
-						if (inSection)
-						{
-							var match = BodyRegex.Match(trimmed);
-							bool isBlockEnd = trimmed.EndsWith(ContentGuides[typeBody][1]);
-
-							if (!isRemoving && match.Success && namesToRemove.Contains(match.Groups["id"].Value))
-							{
-								isRemoving = true;
-								continue;
-							}
-
-							if (isRemoving && isBlockEnd)
-							{
-								isRemoving = false;
-								continue;
-							}
-
-							if (isRemoving)
-								continue;
-						}
-
-						writer.WriteLine(line);
-					}
-				}
-
-				FileWatcher.ReplaceFile(tempPath, filePath);
-			}
-			finally
-			{
-				if (File.Exists(tempPath))
-					File.Delete(tempPath);
-			}
-		}
-
-		public bool UpdateNotificationInScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
-		{
-			(string filePath, string resolvedFileKey) = CheckKeyResolutionInFile(fileKeyParam, name);
-			string tempPath = Path.GetTempFileName();
-
-			try
-			{
-				var lines = File.ReadAllLines(filePath).ToList();
-				string type = DataMode.TypeName;
-				string typeBody = DataMode.TypeBody!;
-
-				(int baseStartIndex, int baseEndIndex) = GetPositionIndexInFile(lines, type, typeBody);
-
-				var elementIndexes = GetPositionIndexInFile(lines[baseStartIndex..baseEndIndex], type, typeBody, name);
-				int elmStartIndex = baseStartIndex + elementIndexes.Item1;
-				int elmEndIndex = baseStartIndex + elementIndexes.Item2 - 1;
-
-				if (ConvertToScriptContent(content, true) is string newBlock)
-				{
-					lines.RemoveRange(elmStartIndex, (elementIndexes.Item2 - elementIndexes.Item1) + 1);
-					lines.Insert(elmStartIndex, newBlock);
-
-					File.WriteAllLines(tempPath, lines);
-					FileWatcher.ReplaceFile(tempPath, filePath);
-
-					if (CheckNotification(name) is Notification notifier)
-					{
-						notifier.IsSynced = true;
-						SaveData();
-					}
-				}
-				else
-				{
-					DialogBox.Show($"Failed to convert notifier data to script format for \"{name}\".",
-						"Conversion Error", DialogButtonDefaults.OK, DialogIcon.Error);
-					return false;
-				}
-
-				return true;
-			}
-			catch (Exception ex)
-			{
-				DialogBox.Show($"Failed to update notifier \"{name}\" in script.\n\n{ex}",
-					"Update Failed", DialogButtonDefaults.OK, DialogIcon.Error);
-				throw;
-			}
-			finally
-			{
-				if (File.Exists(tempPath)) File.Delete(tempPath);
-			}
-		}
-
-		public Dictionary<string, bool> NotificationContentMatches(List<string> names, string? fileKey = null)
+		public override Dictionary<string, bool> EntityContentMatches(List<string> names, string? fileKey = null)
 		{
 			var results = names.ToDictionary(n => n, _ => false);
 			var remaining = new HashSet<string>(names);
 
-			var filePath = ResolveNotificationFilePath(fileKey, out _);
+			var filePath = ResolveDataFilePath(fileKey, out _);
 			if (filePath == null || names.Count == 0)
 				return results;
 
-			var type = DataMode.TypeName;
-			var typeBody = DataMode.TypeBody!;
+			var masterGuide = DataMode.MasterGuideContent;
+			var childGuide = DataMode.ChildGuideContent!;
 			string[] fileContent = File.ReadAllLines(filePath);
-			int start = Array.FindIndex(fileContent, line => line.Trim() == ContentGuides[type][0]);
-			int end = Array.FindIndex(fileContent, start + 1, line => line.Trim() == ContentGuides[type][1]);
+			int start = Array.FindIndex(fileContent, line => line.Trim() == masterGuide.GuideStart);
+			int end = Array.FindIndex(fileContent, start + 1, line => line.Trim() == masterGuide.GuideEnd);
 
 			if (start == -1 || end == -1)
 				return results;
@@ -1019,8 +455,8 @@ namespace MonoBuilder.Models.notification_management
 				string rawLine = fileContent[i];
 				string line = rawLine.Trim();
 				var bodyMatch = BodyRegex.Match(line);
-				bool isBlockEnd = line.StartsWith("} " + ContentGuides[typeBody][1]) ||
-								  line.StartsWith("}, " + ContentGuides[typeBody][1]);
+				bool isBlockEnd = line.StartsWith("} " + childGuide.GuideEnd) ||
+								  line.StartsWith("}, " + childGuide.GuideEnd);
 
 				if (bodyMatch.Success)
 				{
@@ -1033,7 +469,7 @@ namespace MonoBuilder.Models.notification_management
 				{
 					if (isBlockEnd)
 					{
-						if (CheckNotification(currentId) is Notification notif)
+						if (CheckData(currentId) is Notification notif)
 						{
 							parsedAttributes.TryGetValue("title", out string? title);
 							parsedAttributes.TryGetValue("subtitle", out string? subtitle);
@@ -1099,7 +535,7 @@ namespace MonoBuilder.Models.notification_management
 							finalValue = sb.ToString().Trim();
 							//if (!foundClosing)
 							//{
-								// Optional: log warning or append closing backtick
+							// Optional: log warning or append closing backtick
 							//}
 						}
 						else if (valuePart.Length >= 2 &&
@@ -1121,8 +557,291 @@ namespace MonoBuilder.Models.notification_management
 
 			return results;
 		}
+		#endregion
 
-		public bool CheckSynchronicity(bool showMessage = true)
+		#region Conversion Methods
+		public override Dictionary<string, string?> ConvertToScriptContent(Notification notification)
+		{
+			var dict = new Dictionary<string, string?>
+			{
+				["id"] = notification.Name,
+				["title"] = notification.Title,
+				["body"] = notification.Body
+			};
+
+			if (notification.Type == NotifierType.Message)
+			{
+				dict["subtitle"] = notification.Subtitle;
+				dict["actionString"] = notification.CloseAction;
+			}
+			else if (notification.Type == NotifierType.Notification)
+			{
+				dict["icon"] = notification.Icon;
+			}
+
+			return dict;
+		}
+
+		protected override string? ConvertToScriptContent(Dictionary<string, string?> content)
+		{
+			if (!content.TryGetValue("id", out string? id) || string.IsNullOrEmpty(id))
+				return null;
+
+			var childGuide = DataMode.ChildGuideContent!;
+			string indent = AddIndentation();
+			var sb = new StringBuilder();
+
+			sb.AppendLine($"{indent}\"{id}\": {{ {childGuide.GuideStart}");
+
+			string[] knownKeys = ["title", "subtitle", "body", "icon", "actionString"];
+			var toWrite = knownKeys
+				.Where(k => content.TryGetValue(k, out string? v) && !string.IsNullOrEmpty(v))
+				.ToList();
+
+			for (int i = 0; i < toWrite.Count; i++)
+			{
+				string key = toWrite[i];
+				string? value = content[key];
+				bool isLast = i == toWrite.Count - 1;
+				sb.AppendLine($"{indent}{indent}{ProcessAttributeLine(key, value)}{(isLast ? string.Empty : ",")}");
+			}
+
+			sb.Append($"{indent}}}, {childGuide.GuideEnd}");
+			return sb.ToString();
+		}
+		#endregion
+
+		#region Engine File Manipulation
+		public override void AddEntityToScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
+		{
+			(string filePath, string resolvedFileKey) = CheckKeyResolutionInFile(fileKeyParam, name);
+			string tempPath = Path.GetTempFileName();
+
+			try
+			{
+				var lines = File.ReadAllLines(filePath).ToList();
+				var masterGuide = DataMode.MasterGuideContent;
+				var childGuide = DataMode.ChildGuideContent!;
+
+				(int startIndex, int endIndex) = GetPositionIndexInFile(lines, masterGuide, childGuide);
+
+				// Ensure the last block's closing brace has a trailing comma
+				for (int i = endIndex - 1; i > startIndex; i--)
+				{
+					string trimmed = lines[i].TrimEnd();
+					if (!string.IsNullOrWhiteSpace(trimmed))
+					{
+						if (trimmed.EndsWith("} " + childGuide.GuideEnd))
+							lines[i] = lines[i].Replace("} ", "}, ");
+						break;
+					}
+				}
+
+				if (ConvertToScriptContent(content) is string newBlock)
+				{
+					// Insert a blank separator line then the block lines before the end marker
+					var blockLines = newBlock.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+					lines.Insert(endIndex, string.Empty);
+					for (int i = blockLines.Count - 1; i >= 0; i--)
+						lines.Insert(endIndex + 1, blockLines[i]);
+
+					File.WriteAllLines(tempPath, lines);
+					FileWatcher.ReplaceFile(tempPath, filePath);
+
+					if (CheckData(name) is Notification notif)
+					{
+						notif.FileKey = resolvedFileKey;
+						notif.IsSynced = true;
+						SaveData();
+					}
+				}
+				else
+				{
+					DialogBox.Show($"Failed to convert notifier data to script format for \"{name}\".",
+						"Conversion Error", DialogButtonDefaults.OK, DialogIcon.Error);
+				}
+			}
+			catch (Exception ex)
+			{
+				DialogBox.Show($"Failed to add notifier \"{name}\" to script.\n\n{ex}",
+					"Add Failed", DialogButtonDefaults.OK, DialogIcon.Error);
+				throw;
+			}
+			finally
+			{
+				if (File.Exists(tempPath)) File.Delete(tempPath);
+			}
+		}
+
+		public override bool RemoveEntityFromScript(int notificationId, bool shouldSave = true)
+		{
+			return RemoveEntitiesFromScript(new[] { notificationId }, shouldSave);
+		}
+
+		public override bool RemoveEntitiesFromScript(int[] notificationIds, bool shouldSave = true)
+		{
+			if (notificationIds == null || notificationIds.Length == 0)
+				return false;
+
+			var idsToRemove = new HashSet<int>(notificationIds);
+			var notificationsToRemove = new List<Notification>();
+
+			foreach (int id in idsToRemove)
+			{
+				if (CheckData(id) is Notification notif)
+				{
+					notif.IsSynced = false;
+					notificationsToRemove.Add(notif);
+				}
+			}
+
+			if (notificationsToRemove.Count == 0)
+				return false;
+
+			var notificationsByFile = notificationsToRemove
+				.GroupBy(notif => ResolveDataFilePath(notif, out _))
+				.Where(g => g.Key != null)
+				.ToDictionary(g => g.Key!, g => g.ToList());
+
+			try
+			{
+				foreach (var (filePath, notificationsInFile) in notificationsByFile)
+					RemoveEntityFromSingleFile(filePath, notificationsInFile);
+
+				if (shouldSave) SaveData();
+				return true;
+			}
+			catch (Exception ex)
+			{
+				DialogBox.Show($"Failed to remove notification data from script.\n\n{ex}",
+					"Remove Failed", DialogButtonDefaults.OK, DialogIcon.Error);
+				throw;
+			}
+		}
+
+		protected override void RemoveEntityFromSingleFile(string filePath, List<Notification> notificationsToRemove)
+		{
+			string tempPath = Path.GetTempFileName();
+			var namesToRemove = new HashSet<string>(notificationsToRemove.Select(n => n.Name));
+
+			try
+			{
+				using (var reader = new StreamReader(filePath))
+				using (var writer = new StreamWriter(tempPath))
+				{
+					var masterGuide = DataMode.MasterGuideContent;
+					var childGuide = DataMode.ChildGuideContent!;
+					bool inSection = false;
+					bool isRemoving = false;
+					string? line;
+
+					while ((line = reader.ReadLine()) != null)
+					{
+						string trimmed = line.Trim();
+
+						if (!inSection && trimmed == masterGuide.GuideStart)
+						{
+							inSection = true;
+							writer.WriteLine(line);
+							continue;
+						}
+
+						if (inSection && trimmed == masterGuide.GuideEnd)
+						{
+							inSection = false;
+							writer.WriteLine(line);
+							continue;
+						}
+
+						if (inSection)
+						{
+							var match = BodyRegex.Match(trimmed);
+							bool isBlockEnd = trimmed.EndsWith(childGuide.GuideEnd);
+
+							if (!isRemoving && match.Success && namesToRemove.Contains(match.Groups["id"].Value))
+							{
+								isRemoving = true;
+								continue;
+							}
+
+							if (isRemoving && isBlockEnd)
+							{
+								isRemoving = false;
+								continue;
+							}
+
+							if (isRemoving)
+								continue;
+						}
+
+						writer.WriteLine(line);
+					}
+				}
+
+				FileWatcher.ReplaceFile(tempPath, filePath);
+			}
+			finally
+			{
+				if (File.Exists(tempPath))
+					File.Delete(tempPath);
+			}
+		}
+
+		public override bool UpdateEntityInScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null)
+		{
+			(string filePath, string resolvedFileKey) = CheckKeyResolutionInFile(fileKeyParam, name);
+			string tempPath = Path.GetTempFileName();
+
+			try
+			{
+				var lines = File.ReadAllLines(filePath).ToList();
+				var masterGuide = DataMode.MasterGuideContent;
+				var childGuide = DataMode.ChildGuideContent!;
+
+				(int baseStartIndex, int baseEndIndex) = GetPositionIndexInFile(lines, masterGuide, childGuide);
+
+				var elementIndexes = GetPositionIndexInFile(lines[baseStartIndex..baseEndIndex], masterGuide, childGuide, name);
+				int elmStartIndex = baseStartIndex + elementIndexes.Item1;
+				int elmEndIndex = baseStartIndex + elementIndexes.Item2 - 1;
+
+				if (ConvertToScriptContent(content) is string newBlock)
+				{
+					lines.RemoveRange(elmStartIndex, (elementIndexes.Item2 - elementIndexes.Item1) + 1);
+					lines.Insert(elmStartIndex, newBlock);
+
+					File.WriteAllLines(tempPath, lines);
+					FileWatcher.ReplaceFile(tempPath, filePath);
+
+					if (CheckData(name) is Notification notifier)
+					{
+						notifier.IsSynced = true;
+						SaveData();
+					}
+				}
+				else
+				{
+					DialogBox.Show($"Failed to convert notifier data to script format for \"{name}\".",
+						"Conversion Error", DialogButtonDefaults.OK, DialogIcon.Error);
+					return false;
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				DialogBox.Show($"Failed to update notifier \"{name}\" in script.\n\n{ex}",
+					"Update Failed", DialogButtonDefaults.OK, DialogIcon.Error);
+				throw;
+			}
+			finally
+			{
+				if (File.Exists(tempPath)) File.Delete(tempPath);
+			}
+		}
+		#endregion
+
+		#region Synchronicity Checking
+		public override bool CheckSynchronicity(bool showMessage = true)
 		{
 			if (ApplicationSettings == null)
 				return false;
@@ -1132,7 +851,7 @@ namespace MonoBuilder.Models.notification_management
 			foreach (var mode in modes)
 			{
 				SetDataMode(mode);
-				var files = GetNotificationFiles();
+				var files = GetDataFiles();
 				if (files.Count == 0)
 					return false;
 
@@ -1141,7 +860,7 @@ namespace MonoBuilder.Models.notification_management
 					var namesInFile = DataMode.Collection
 						.Where(i => i.IsSynced &&
 									(string.IsNullOrEmpty(i.FileKey)
-										? fileKey == ResolveNotificationFileKey()
+										? fileKey == ResolveDataFileKey()
 										: i.FileKey == fileKey))
 						.Select(i => i.Name)
 						.ToList();
@@ -1149,7 +868,7 @@ namespace MonoBuilder.Models.notification_management
 					if (namesInFile.Count == 0)
 						continue;
 
-					var contentMatches = NotificationContentMatches(namesInFile, fileKey);
+					var contentMatches = EntityContentMatches(namesInFile, fileKey);
 
 					foreach (string name in namesInFile)
 					{
@@ -1178,6 +897,8 @@ namespace MonoBuilder.Models.notification_management
 
 			return hasChanged;
 		}
+		#endregion
+
 		#endregion
 	}
 }

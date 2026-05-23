@@ -19,21 +19,24 @@ namespace MonoBuilder.ViewModels._generic_models
 
 		public static readonly Regex GetFileKey = new(@"^\((.+?)\)", RegexOptions.Compiled);
 
-		public TabEntries DataTabs { get; set; } = new();
 		public CollectionViewSource? DataViewSource { get; set; }
 
+		private TabEntries _dataTabs = new();
 		private ObservableCollection<string> _availableFiles = new();
 		private TabEntry? _selectedTab;
 		private T? _selectedEntity;
 		private ObservableCollection<T> _selectedEntities = new();
 
+		public TabEntries DataTabs
+		{
+			get => _dataTabs;
+			set => SetProperty(ref _dataTabs, value);
+		}
+
 		public ObservableCollection<string> AvailableFiles
 		{
 			get => _availableFiles;
-			set
-			{
-				SetProperty(ref _availableFiles, value);
-			}
+			set => SetProperty(ref _availableFiles, value);
 		}
 
 		public TabEntry? SelectedTab

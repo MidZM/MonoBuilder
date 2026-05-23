@@ -1,7 +1,7 @@
 # MonoBuilder | Monogatari Visual Novel Builder
 
 ### Current Version
-- 0.5.0
+- 0.6.0
 
 ## What is MonoBuilder?
 MonoBuilder is a graphical interface development tool designed and developed to assist visual novel developers using the Monogatari game engine.

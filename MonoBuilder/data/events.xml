@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+
+<Root>
+	<OptionTemplate Name="Images">
+		<!-- Fading Options -->
+		<Option Name="fadeIn" />
+		<Option Name="fadeOut" />
+
+			<!-- Extra Fade In -->
+			<Option Name="fadeInUp" />
+			<Option Name="fadeInLeft" />
+			<Option Name="fadeInRight" />
+			<Option Name="fadeInDown" />
+
+			<Option Name="fadeInUpBig" />
+			<Option Name="fadeInLeftBig" />
+			<Option Name="fadeInRightBig" />
+			<Option Name="fadeInDownBig" />
+
+			<Option Name="fadeInTopLeft" />
+			<Option Name="fadeInTopRight" />
+			<Option Name="fadeInBottomLeft" />
+			<Option Name="fadeInBottomRight" />
+
+			<!-- Extra Fade Out -->
+			<Option Name="fadeOutUp" />
+			<Option Name="fadeOutLeft" />
+			<Option Name="fadeOutRight" />
+			<Option Name="fadeOutDown" />
+
+			<Option Name="fadeOutUpBig" />
+			<Option Name="fadeOutLeftBig" />
+			<Option Name="fadeOutRightBig" />
+			<Option Name="fadeOutDownBig" />
+
+			<Option Name="fadeOutTopLeft" />
+			<Option Name="fadeOutTopRight" />
+			<Option Name="fadeOutBottomLeft" />
+			<Option Name="fadeOutBottomRight" />
+
+		<!-- Sliding Options -->
+		<Option Name="slideInUp" />
+		<Option Name="slideInDown" />
+		<Option Name="slideInLeft" />
+		<Option Name="slideInRight" />
+
+		<Option Name="slideOutUp" />
+		<Option Name="slideOutDown" />
+		<Option Name="slideOutLeft" />
+		<Option Name="slideOutRight" />
+
+		<!-- Zoom Options -->
+		<Option Name="zoomIn" />
+		<Option Name="zoomOut" />
+
+			<!-- Extra Zoom In -->
+			<Option Name="zoomInUp" />
+			<Option Name="zoomInDown" />
+			<Option Name="zoomInLeft" />
+			<Option Name="zoomInRight" />
+
+			<!-- Extra Zoom Out -->
+			<Option Name="zoomOutUp" />
+			<Option Name="zoomOutDown" />
+			<Option Name="zoomOutLeft" />
+			<Option Name="zoomOutRight" />
+
+		<!-- Rotating Options -->
+		<Option Name="rotateIn" />
+		<Option Name="rotateOut" />
+
+			<!-- Extra Rotating In -->
+			<Option Name="rotateInUpLeft" />
+			<Option Name="rotateInUpRight" />
+			<Option Name="rotateInDownLeft" />
+			<Option Name="rotateInDownRight" />
+
+			<!-- Extra Rotating Out -->
+			<Option Name="rotateOutUpLeft" />
+			<Option Name="rotateOutUpRight" />
+			<Option Name="rotateOutDownLeft" />
+			<Option Name="rotateOutDownRight" />
+
+		<!-- Lightspeed Options -->
+		<Option Name="lightSpeedInRight" />
+		<Option Name="lightSpeedInLeft" />
+		<Option Name="lightSpeedOutRight" />
+		<Option Name="lightSpeedOutLeft" />
+
+		<!-- Flippers Options -->
+		<Option Name="flip" />
+
+			<!-- Extra Flippers -->
+			<Option Name="flipInX" />
+			<Option Name="flipInY" />
+			<Option Name="flipOutX" />
+			<Option Name="flipOutY" />
+
+		<!-- Bouncing Options -->
+		<Option Name="bounceIn" />
+		<Option Name="bounceOut" />
+
+			<!-- Extra Bounce In -->
+			<Option Name="bounceInUp" />
+			<Option Name="bounceInDown" />
+			<Option Name="bounceInLeft" />
+			<Option Name="bounceInRight" />
+
+			<!-- Extra Bounce Out -->
+			<Option Name="bounceOutUp" />
+			<Option Name="bounceOutDown" />
+			<Option Name="bounceOutLeft" />
+			<Option Name="bounceOutRight" />
+
+		<!-- Back In Options -->
+		<Option Name="backInUp" />
+		<Option Name="backInDown" />
+		<Option Name="backInLeft" />
+		<Option Name="backInRight" />
+
+		<!-- Back Out Options -->
+		<Option Name="backOutUp" />
+		<Option Name="backOutDown" />
+		<Option Name="backOutLeft" />
+		<Option Name="backOutRight" />
+
+		<!-- Special Options -->
+		<Option Name="hinge" />
+		<Option Name="jackInTheBox" />
+		<Option Name="rollIn" />
+		<Option Name="rollOut" />
+
+		<!-- Attention Seeking Options -->
+		<Option Name="bounce" />
+		<Option Name="flash" />
+		<Option Name="pulse" />
+		<Option Name="rubberBand" />
+		<Option Name="shakeX" />
+		<Option Name="shakeY" />
+		<Option Name="headShake" />
+		<Option Name="swing" />
+		<Option Name="tada" />
+		<Option Name="wobble" />
+		<Option Name="jello" />
+		<Option Name="heartBeat" />
+
+		<Option Name="duration" HasTrailingOptions="true">
+			<TrailingOption Placeholder="[Millisecond Integer Value]" EndValue="s" />
+		</Option>
+
+		<Option Name="delay" HasTrailingOptions="true">
+			<TrailingOption Placeholder="[Millisecond Integer Value]" EndValue="s" />
+		</Option>
+	</OptionTemplate>
+
+	<!-- Image Script Actions -->
+	<Event TriggerText="show image">
+		<System Name="Images" Collection="Images" />
+		<Options Template="Images" />
+
+		<Position Name="Center" />
+		<Position Name="Left" />
+		<Position Name="Right" />
+	</Event>
+	<Event TriggerText="show scene">
+		<System Name="Images" Collection="Scenes" />
+		<Options Template="Images" />
+
+		<Position Name="Center" />
+		<Position Name="Left" />
+		<Position Name="Right" />
+	</Event>
+	<Event TriggerText="gallery unlock">
+		<System Name="Images" Collection="Gallery" />
+	</Event>
+	<Event TriggerText="gallery lock">
+		<System Name="Images" Collection="Gallery" />
+	</Event>
+
+	<!-- Message Script Actions -->
+	<Event TriggerText="">
+		<System Name="" Collection="" />
+		<Options>
+			<Option Name="" />
+			<Option Name="" HasTrailingOptions="true">
+				<TrailingOption Placeholder="" />
+			</Option>
+		</Options>
+	</Event>
+	<Event TriggerText="">
+		<System Name="" Collection="" />
+		<Options>
+			<Option Name="" />
+			<Option Name="" HasTrailingOptions="true">
+				<TrailingOption Placeholder="" />
+			</Option>
+		</Options>
+	</Event>
+</Root>

@@ -3,7 +3,7 @@
     <PropertyGroup>
         <AssemblyTitle>Monogatari Visual Novel Builder</AssemblyTitle>
 		<Product>MonoBuilder</Product>
-		<Version>0.5.0</Version>
+		<Version>0.6.0</Version>
 		<Company>Zone Master Productions | MidZM</Company>
 		<Copyright>Copyright © 2026</Copyright>
         <OutputType>WinExe</OutputType>

@@ -1,6 +1,8 @@
 ﻿using MonoBuilder.Commands;
 using MonoBuilder.Models;
+using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
+using MonoBuilder.Models.generics.interfaces;
 using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.image_management;
 using MonoBuilder.Models.notification_management;
@@ -29,6 +31,8 @@ namespace MonoBuilder.ViewModels.MainModel
 		private readonly EventHelper EventUtility;
 		private readonly ScriptConversion Converter;
 
+		private readonly (string, MonoSystem)[] _systemsByStringName;
+
 		public required Window Owner { get; set; }
 
 		public RelayCommand OpenBuilderCommand { get; }
@@ -41,15 +45,28 @@ namespace MonoBuilder.ViewModels.MainModel
 		{
 			#region System Setup
 
+			_systemsByStringName = [
+				("Characters", CharacterData),
+				("Images", ImageData),
+				("Notifications", NotificationData)
+			];
+
 			ApplicationSettings.LoadDirectories();
 			CharacterData.LoadSettings(ApplicationSettings);
 			ImageData.LoadSettings(ApplicationSettings);
 			NotificationData.LoadSettings(ApplicationSettings);
 
 			ActionUtility.LoadActions();
-			EventUtility = new(("Characters", CharacterData), ("Images", ImageData));
-			EventUtility.RegisterCollection("Characters", CharacterData.AllCharacters);
-			EventUtility.RegisterCollection("Images", ImageData.AllImages);
+
+			EventUtility = new(_systemsByStringName);
+			EventUtility.RegisterCollection("Characters", (CharacterData.GetDataMode("characters") as AssetStore<Character>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Images", (ImageData.GetDataMode("images") as AssetStore<MonoImage>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Scenes", (ImageData.GetDataMode("scenes") as AssetStore<MonoImage>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Gallery", (ImageData.GetDataMode("gallery") as AssetStore<MonoImage>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Messages", (NotificationData.GetDataMode("messages") as AssetStore<Notification>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Notifications", (NotificationData.GetDataMode("notifications") as AssetStore<Notification>)?.Collection ?? []);
+
+			EventUtility.LoadEvents();
 
 			Converter = new ScriptConversion(CharacterData, ActionUtility);
 

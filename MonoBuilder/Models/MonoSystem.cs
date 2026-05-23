@@ -1,7 +1,9 @@
-﻿using MonoBuilder.Models.generics.interfaces;
+﻿using MonoBuilder.Models.character_management;
+using MonoBuilder.Models.generics.enums;
+using MonoBuilder.Models.generics.interfaces;
+using MonoBuilder.Models.helpers;
+using MonoBuilder.Views.ViewUtils;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Xml.Linq;
 
 namespace MonoBuilder.Models
@@ -10,16 +12,384 @@ namespace MonoBuilder.Models
 	{
 		protected AppSettings? ApplicationSettings { get; set; }
 		protected XDocument SystemData { get; set; } = new();
-		protected Dictionary<string, List<string>> ContentGuides { get; set; } = new();
 		public virtual string DataModeTypeName => string.Empty;
 
 		public abstract void LoadData();
 		public abstract void SaveData();
 	}
 
-	public abstract class MonoSystem<T> : MonoSystem where T : INamedEntity
+	public interface IDataModeController
 	{
-		public virtual AssetStore<T> DataMode { get; set; } = new() { TypeName = string.Empty };
+		void SetDataMode(string mode);
+		IAssetStore? GetDataMode(string mode);
+	}
+
+	public abstract class MonoSystem<T> : MonoSystem, IDataModeController where T : INamedEntity, IMultiFile
+	{
+		public virtual AssetStore<T> DataMode { get; set; } = new()
+		{
+			TypeName = string.Empty,
+			MasterGuideContent = new(
+				string.Empty,
+				string.Empty,
+				string.Empty)
+		};
+
 		public override string DataModeTypeName => DataMode.TypeName;
+		protected Dictionary<string, AssetStore<T>> AllDataModes { get; set; } = new();
+
+		#region Handle modes
+		public void SetDataMode(string mode)
+		{
+			if (AllDataModes.TryGetValue(mode, out AssetStore<T>? store))
+			{
+				DataMode = store;
+			}
+		}
+
+		public IAssetStore? GetDataMode(string mode)
+		{
+			if (AllDataModes.TryGetValue(mode, out AssetStore<T>? store))
+			{
+				return store;
+			}
+
+			return null;
+		}
+		#endregion
+
+		#region Handle File Data
+		public void LoadSettings(AppSettings settings)
+		{
+			ApplicationSettings = settings;
+		}
+
+		protected Dictionary<string, string> GetDataFiles()
+		{
+			if (ApplicationSettings == null)
+				return [];
+
+			var files = ApplicationSettings.GetAllFilePaths(DataModeTypeName);
+			if (files.Count == 0)
+			{
+				var legacyPath = ApplicationSettings.GetFilePath(DataModeTypeName);
+				if (!string.IsNullOrEmpty(legacyPath))
+					files[DataModeTypeName] = legacyPath;
+			}
+
+			return files;
+		}
+
+		protected string? ResolveDataFileKey(string? fileKey = null)
+		{
+			var files = GetDataFiles();
+			if (files.Count == 0)
+				return null;
+
+			if (!string.IsNullOrWhiteSpace(fileKey) && files.ContainsKey(fileKey))
+				return fileKey;
+
+			if (!string.IsNullOrWhiteSpace(fileKey))
+			{
+				var prefixed = files.Keys
+					.OrderBy(key => key)
+					.FirstOrDefault(key => key.StartsWith(fileKey + ":", StringComparison.Ordinal));
+
+				if (prefixed != null)
+					return prefixed;
+			}
+
+			return files.Keys.OrderBy(key => key).FirstOrDefault();
+		}
+
+		protected string? ResolveDataFilePath(string? fileKey, out string resolvedFileKey)
+		{
+			resolvedFileKey = ResolveDataFileKey(fileKey) ?? string.Empty;
+			if (string.IsNullOrEmpty(resolvedFileKey))
+				return null;
+
+			return ApplicationSettings?.GetAllFilePaths().TryGetValue(resolvedFileKey, out string? filePath) == true
+				? filePath
+				: null;
+		}
+
+		protected string? ResolveDataFilePath(T? entity, out string resolvedFileKey)
+		{
+			return ResolveDataFilePath(entity?.FileKey, out resolvedFileKey);
+		}
+
+		public abstract Dictionary<string, T> SyncData(bool duplicatesOnly = false);
+		#endregion
+
+		#region Handle Data in The Program
+
+		#region Duplicate Checking
+		public bool CheckForDuplicates(T entityToCheck)
+		{
+			foreach (T type in DataMode.Collection)
+			{
+				if (type is Character character && entityToCheck is Character characterToCheck)
+				{
+					if (character.Tag == characterToCheck.Tag)
+						return true;
+				}
+				else
+				{
+					if (type.Name == entityToCheck.Name)
+						return true;
+				}
+			}
+
+			return false;
+		}
+		public List<string> CheckForDuplicates(HashSet<T> entitiesToCheck)
+		{
+			List<string> list = new();
+			foreach (T type in DataMode.Collection)
+			{
+				if (type is Character character && entitiesToCheck is HashSet<Character> charactersToCheck)
+				{
+					if (charactersToCheck.Contains(character))
+						list.Add(character.Name);
+				}
+				else
+				{
+					if (entitiesToCheck.Contains(type))
+						list.Add(type.Name);
+				}
+			}
+
+			return list;
+		}
+		#endregion
+
+		#region Reference Rebuilding
+		public void RebuildLookups()
+		{
+			DataMode.ByName.Clear();
+			DataMode.ById.Clear();
+
+			foreach (var ent in DataMode.Collection)
+			{
+				if (ent is Character cha)
+					DataMode.ByName[cha.Tag] = ent;
+				else
+					DataMode.ByName[ent.Name] = ent;
+
+				DataMode.ById[ent.EntityID] = ent;
+			}
+		}
+		protected void RebuildLookups(string type)
+		{
+			var dataMode = GetDataMode(type) as AssetStore<T>;
+
+			dataMode?.ByName.Clear();
+			dataMode?.ById.Clear();
+
+			foreach (var ent in dataMode?.Collection ?? [])
+			{
+				if (ent is Character cha)
+					dataMode?.ByName[cha.Tag] = ent;
+				else
+					dataMode?.ByName[ent.Name] = ent;
+
+				dataMode?.ById[ent.EntityID] = ent;
+			}
+		}
+		#endregion
+
+		#region Data Manipulation
+		public void AddData(T entity, bool shouldSave = true)
+		{
+			if (string.IsNullOrEmpty(entity.FileKey))
+				entity.FileKey = ResolveDataFileKey(DataModeTypeName) ?? string.Empty;
+
+			entity.EntityID = DataMode.NextId++;
+			DataMode.Collection.Add(entity);
+
+			DataMode.ByName[entity.Name] = entity;
+			DataMode.ById[entity.EntityID] = entity;
+
+			if (shouldSave) SaveData();
+		}
+
+		public bool RemoveData(int entityId, bool shouldSave = true)
+		{
+			if (!DataMode.ById.TryGetValue(entityId, out var type))
+				return false;
+
+			DataMode.ById.Remove(entityId);
+			DataMode.ByName.Remove(type.Name);
+			DataMode.Collection.RemoveAt(DataMode.Collection.IndexOf(type));
+			RebuildLookups();
+
+			if (shouldSave) SaveData();
+			return true;
+		}
+
+		public void RemoveData(int[] entityIds, bool shouldSave = true)
+		{
+			if (entityIds.Length == 0)
+				return;
+
+			var idsToRemove = new HashSet<int>(entityIds);
+			foreach (int id in idsToRemove)
+			{
+				if (DataMode.ById.TryGetValue(id, out var type))
+				{
+					DataMode.ByName.Remove(type.Name);
+					DataMode.ById.Remove(id);
+				}
+			}
+
+			DataMode.Collection.RemoveByIds(idsToRemove);
+
+			if (shouldSave) SaveData();
+		}
+
+		public T UpdateData(int typeId, T newData, bool shouldSave = true)
+		{
+			if (!DataMode.ById.TryGetValue(typeId, out var existing))
+				throw new KeyNotFoundException($"{DataModeTypeName}: Entity ID {typeId} not found...");
+
+			if (existing.Name != newData.Name)
+			{
+				DataMode.ByName.Remove(existing.Name);
+			}
+
+			DataMode.ByName[newData.Name] = newData;
+			DataMode.ById[existing.EntityID] = newData;
+			DataMode.Collection[DataMode.Collection.IndexOf(existing)] = newData;
+
+			if (shouldSave) SaveData();
+
+			return existing;
+		}
+		#endregion
+
+		#region Data Seeking
+		public bool ContainsName(string name) => DataMode.ByName.ContainsKey(name);
+		public T? CheckData(string entityName) => DataMode.ByName.TryGetValue(entityName, out var type) ? type : default;
+		public T? CheckData(int entityId) => DataMode.ById.TryGetValue(entityId, out var type) ? type : default;
+		#endregion
+
+		#endregion
+
+		#region Utility Methods
+		protected (string, string) CheckKeyResolutionInFile(string? fileKeyParam, string name)
+		{
+			string? fileKey = fileKeyParam ?? CheckData(name)?.FileKey;
+			var filePath = ResolveDataFilePath(fileKey, out string resolvedFileKey);
+
+			if (filePath == null)
+			{
+				DialogBox.Show($"Failed to resolve file path for notifier \"{name}\".",
+					"Bad File Path", DialogButtonDefaults.OK, DialogIcon.Error);
+				throw new ArgumentOutOfRangeException($"Bad file data for {name}");
+			}
+
+			return (filePath, resolvedFileKey);
+		}
+
+		protected (int, int) GetPositionIndexInFile(List<string> lines, ContentGuide guide)
+		{
+			int startIndex = lines.FindIndex(l => l.Trim() == guide.GuideStart);
+			int endIndex = lines.FindIndex(l => l.Trim() == guide.GuideEnd);
+
+			if (startIndex == -1 || endIndex == -1)
+			{
+				DialogBox.Show(
+					$"Missing proper {DataModeTypeName} section markers in script file.\n\n" +
+					$"You need opening and close tags, such as:\n" +
+					$"{guide.GuideStart}\n{AddIndentation()}\"ExampleKey\": \"ExampleValue\"\n{guide.GuideEnd}",
+					$"Missing {DataModeTypeName} Section", DialogButtonDefaults.OK, DialogIcon.Error);
+				throw new IndexOutOfRangeException($"Failed to find opening and closing tags in the selected file...");
+			}
+
+			return (startIndex, endIndex);
+		}
+
+		protected (int, int) GetPositionIndexInFile(List<string> lines, ContentGuide masterGuide, ContentGuide childGuide, string? name = null)
+		{
+			string masterGuideStart = masterGuide.GuideStart;
+			string masterGuideEnd = masterGuide.GuideEnd;
+			string childGuideStart = childGuide.GuideStart;
+			string childGuideEnd = childGuide.GuideEnd;
+
+			int startIndex = name == null
+				? lines.FindIndex(l => l.Trim() == masterGuideStart)
+				: lines.FindIndex(l => l.Contains(name) && l.TrimEnd().EndsWith(childGuideStart));
+			int endIndex = name == null
+				? lines.FindIndex(startIndex + 1, l => l.Trim() == masterGuideEnd)
+				: lines.FindIndex(startIndex + 1, l => l.TrimEnd().EndsWith(childGuideEnd));
+
+			if (startIndex == -1 || endIndex == -1)
+			{
+				DialogBox.Show(
+					$"Missing proper {DataModeTypeName} section markers in script file.\n\n" +
+					$"You need opening and closing tags, such as:\n" +
+					$"{masterGuideStart}\n{AddIndentation()}\"Example\": {{ {childGuideStart}\n" +
+					$"{AddIndentation()}{AddIndentation()}\"something\": \"...\",\n" +
+					$"{AddIndentation()}}} {childGuideEnd}\n{masterGuideEnd}",
+					$"Missing {DataModeTypeName} Section", DialogButtonDefaults.OK, DialogIcon.Error);
+
+				string phrasing = name == null ? "base" : "element";
+				throw new IndexOutOfRangeException($"Failed to find opening and closing {phrasing} tags in the selected file...");
+			}
+
+			return (startIndex, endIndex);
+		}
+		#endregion
+
+		#region Handle Data in The Engine
+
+		#region Script Utility
+		protected string AddIndentation()
+		{
+			return ApplicationSettings?.GetIndentationType() switch
+			{
+				"Tabs" => "\t",
+				"Spaces" => new string(' ', ApplicationSettings.GetIndentationAmount()),
+				_ => new string(' ', 4)
+			};
+		}
+		#endregion
+
+		#region Existance Checks
+		public abstract Dictionary<string, bool> EntitiesExistInScript(HashSet<string> names);
+		public abstract bool EntityExistsInScript(string name, string? fileKey = null);
+		public bool EntityExistsInScript(int entityId)
+		{
+			if (CheckData(entityId) is not T entity)
+				return false;
+
+			if (entity is Character character)
+			{
+				return EntityExistsInScript(character.Tag, character.FileKey);
+			}
+
+			return EntityExistsInScript(entity.Name, entity.FileKey);
+		}
+		public abstract Dictionary<string, bool> EntityContentMatches(List<string> names, string? fileKey = null);
+		#endregion
+
+		#region Script Conversion
+		public abstract Dictionary<string, string?> ConvertToScriptContent(T type);
+		protected abstract string? ConvertToScriptContent(Dictionary<string, string?> content);
+		#endregion
+
+		#region Script Manipulation
+		public abstract void AddEntityToScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null);
+		public abstract bool RemoveEntityFromScript(int entityId, bool shouldSave = true);
+		public abstract bool RemoveEntitiesFromScript(int[] entitiyIds, bool shouldSave = true);
+		protected abstract void RemoveEntityFromSingleFile(string filePath, List<T> entityToRemove);
+		public abstract bool UpdateEntityInScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null);
+		#endregion
+
+		#region Synchronicity Checks
+		public abstract bool CheckSynchronicity(bool showMessage = true);
+		#endregion
+
+		#endregion
 	}
 }

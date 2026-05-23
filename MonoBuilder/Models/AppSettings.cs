@@ -459,14 +459,14 @@ namespace MonoBuilder.Models
 		public void AddReplaceFolderPath(string key, string path)
         {
             Folders[key] = path;
-			AddReplaceFile(key, Path.GetFileName(path));
+			AddReplaceFolder(key, Path.GetFileName(path));
 			RebuildFolderPathCache();
         }
 
         public void AddReplaceFolderPath(string type, int id, string path)
         {
             Folders[$"{type}:{id}"] = path;
-			AddReplaceFile(Path.GetFileName(path), path);
+			AddReplaceFolder(Path.GetFileName(path), path);
 			RebuildFolderPathCache();
         }
 

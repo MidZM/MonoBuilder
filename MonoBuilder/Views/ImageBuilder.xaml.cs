@@ -20,7 +20,6 @@ namespace MonoBuilder.Views.ViewUtils
     /// </summary>
     public partial class ImageBuilder : Window
     {
-        private double TotalWindowWidth = 0;
         private string Mode { get; set; } = "Images";
 
         public ImageBuilder(AppSettings settings, MonoImages imageData, string mode)

@@ -79,16 +79,15 @@ namespace MonoBuilder.Models.helpers
 				AllEvents.Clear();
 				foreach (var element in SystemData.Descendants("Event"))
 				{
-					string name = element.Attribute("Name")?.Value ?? string.Empty;
+					//string name = element.Attribute("Name")?.Value ?? string.Empty;
 					string triggerText = element.Attribute("TriggerText")?.Value ?? string.Empty;
 					XElement? system = element.Element("System");
 
 					// Name, TriggerText, and Type are required attributes.
-					if (name == string.Empty ||
-						triggerText == string.Empty ||
+					if (triggerText == string.Empty ||
 						system == null) continue;
 
-					string? systemMode = system.Attribute("Mode")?.Value;
+					//string? systemMode = system.Attribute("Mode")?.Value;
 					string systemName = system.Attribute("Name")?.Value ?? string.Empty;
 					string systemCollection = system.Attribute("Collection")?.Value ?? string.Empty;
 
@@ -96,12 +95,9 @@ namespace MonoBuilder.Models.helpers
 					if (systemName == string.Empty ||
 						systemCollection == string.Empty) continue;
 
-					AllSystems.TryGetValue(systemName, out var monoSystem);
-					AllSystemCollections.TryGetValue(systemCollection, out var monoSystemCollection);
-
 					// Any system provided must be a legitimate system.
-					if (monoSystem == null ||
-						monoSystemCollection == null) continue;
+					if (!AllSystems.TryGetValue(systemName, out var monoSystem) ||
+						!AllSystemCollections.TryGetValue(systemCollection, out var monoSystemCollection)) continue;
 
 					ScriptEvent scriptEvent = new(systemName, triggerText)
 					{
@@ -109,14 +105,26 @@ namespace MonoBuilder.Models.helpers
 						SystemCollection = monoSystemCollection,
 						SystemModeName = monoSystem.DataModeTypeName != string.Empty ? monoSystem.DataModeTypeName : null
 					};
+
+					AllEvents.Add(scriptEvent);
+
 					XElement? optionsContainer = element.Element("Options");
 					IEnumerable<XElement>? positions = element.Elements("Position");
+					string? optionsTemplate = optionsContainer?.Attribute("ItemTemplate")?.Value;
 
 					// Set up the options
-					if (optionsContainer != null && optionsContainer.HasElements)
+					if (optionsContainer != null && (optionsContainer.HasElements || optionsTemplate != null))
 					{
 						scriptEvent.Options = new List<EventOption>();
-						IEnumerable<XElement>? options = optionsContainer.Elements("Option");
+						List<XElement>? options = optionsContainer.Elements("Option").ToList();
+
+						if (optionsTemplate != null)
+						{
+							IEnumerable<XElement>? templateOptions = SystemData.Descendants("OptionTemplate")
+																	.Where(d => d.Attribute(optionsTemplate) != null)
+																	.Descendants();
+							options = templateOptions.Concat(options).ToList();
+						}
 
 						foreach (var option in options)
 						{
@@ -139,10 +147,14 @@ namespace MonoBuilder.Models.helpers
 								IEnumerable<XElement>? trailingOptions = option.Elements("TrailingOption");
 								foreach (var trailigOption in trailingOptions)
 								{
-									string trailingOptionPlaceholder = trailigOption.Attribute("Placeholder")?.Value ?? string.Empty;
+									string? trailingOptionPlaceholder = trailigOption.Attribute("Placeholder")?.Value;
+									string? trailingOptionStartValue = trailigOption.Attribute("StartValue")?.Value;
+									string? trailingOptionEndValue = trailigOption.Attribute("EndValue")?.Value;
 									newOption.TrailingOptions.Add(new EventOption(optionName, false)
 									{
-										Placeholder = trailingOptionPlaceholder
+										Placeholder = trailingOptionPlaceholder,
+										StartValue = trailingOptionStartValue,
+										EndValue = trailingOptionEndValue
 									});
 								}
 							}

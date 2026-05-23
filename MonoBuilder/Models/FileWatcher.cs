@@ -426,7 +426,7 @@ namespace MonoBuilder.Models
 
                 try
                 {
-                    var characterData = CharacterData.SyncCharacters(true);
+                    var characterData = CharacterData.SyncData(true);
                     var unsyncedCharacters = CharacterData.AllCharacters.ToList();
 
                     if (characterData.Values.Count > 0)
@@ -443,12 +443,12 @@ namespace MonoBuilder.Models
                             string? directory = character.Directory;
 
 
-                            Normal newNormal = new(name, tag, color, directory);
+                            Character newNormal = new(name, tag, color, directory);
 
                             newNormal.FileKey = fileKey;
                             newNormal.IsSynced = true;
 
-                            CharacterData.UpdateCharacter(characterId, newNormal);
+                            CharacterData.UpdateData(characterId, newNormal);
                         }
                     }
 
@@ -457,7 +457,7 @@ namespace MonoBuilder.Models
                         if (character.IsSynced)
                         {
                             character.IsSynced = false;
-                            CharacterData.UpdateCharacter(character.EntityID, character);
+                            CharacterData.UpdateData(character.EntityID, character);
                         }
                     }
 
@@ -507,12 +507,8 @@ namespace MonoBuilder.Models
                     foreach (string mode in modes)
                     {
                         ImageData.SetDataMode(mode);
-                        var imageData = ImageData.SyncImages(true);
-                        var unsyncedImages = mode == modes[0]
-                            ? ImageData.AllImages.ToList()
-                                : mode == modes[1]
-                            ? ImageData.AllScenes.ToList()
-                            : ImageData.AllGalleryImages.ToList();
+                        var imageData = ImageData.SyncData(true);
+						var unsyncedImages = ImageData.DataMode.Collection;
 
                         if (imageData.Values.Count > 0)
                         {
@@ -520,11 +516,10 @@ namespace MonoBuilder.Models
                             {
                                 unsyncedImages.Remove(unsyncedImages.First(i => i.Name == image.Name));
 
-                                int imageId = mode == modes[0]
-                                    ? ImageData.AllImages.First(i => i.Name == image.Name).EntityID
-                                        : mode == modes[1]
-                                    ? ImageData.AllScenes.First(i => i.Name == image.Name).EntityID
-                                    : ImageData.AllGalleryImages.First(i => i.Name == image.Name).EntityID;
+								int imageId = ImageData.DataMode.Collection
+									.First(i => i.Name == image.Name)
+									.EntityID;
+
                                 string name = image.Name;
                                 string path = image.Path;
                                 string fileKey = image.FileKey;
@@ -536,7 +531,7 @@ namespace MonoBuilder.Models
                                     IsSynced = true
                                 };
 
-                                ImageData.UpdateImage(imageId, newImage);
+                                ImageData.UpdateData(imageId, newImage);
                             }
                         }
 
@@ -545,7 +540,7 @@ namespace MonoBuilder.Models
                             if (image.IsSynced)
                             {
                                 image.IsSynced = false;
-                                ImageData.UpdateImage(image.EntityID, image);
+                                ImageData.UpdateData(image.EntityID, image);
                             }
                         }
 					}
@@ -597,10 +592,8 @@ namespace MonoBuilder.Models
                     foreach (string mode in modes)
                     {
 						NotificationData.SetDataMode(mode);
-                        var notifierData = NotificationData.SyncNotifications(true);
-						var unsyncedNotifiers = mode == modes[0]
-							? NotificationData.AllMessages.ToList()
-							: NotificationData.AllNotifications.ToList();
+                        var notifierData = NotificationData.SyncData(true);
+						var unsyncedNotifiers = NotificationData.DataMode.Collection;
 
                         if (notifierData.Values.Count > 0)
                         {
@@ -610,9 +603,8 @@ namespace MonoBuilder.Models
 
 								var type = mode == modes[0] ? NotifierType.Message : NotifierType.Notification;
 								bool isMessage = type == NotifierType.Message;
-								int notifierId = mode == modes[0]
-									? NotificationData.AllMessages.First(i => i.Name == notifier.Name).EntityID
-									: NotificationData.AllNotifications.First(i => i.Name == notifier.Name).EntityID;
+								int notifierId = NotificationData.DataMode.Collection.First(i => i.Name == notifier.Name).EntityID;
+
                                 string name = notifier.Name;
 								string? title = notifier.Title;
 								string? subtitle = notifier.Subtitle;
@@ -635,7 +627,7 @@ namespace MonoBuilder.Models
 									newNotifier.CloseAction = actionString;
 								}
 
-								NotificationData.UpdateNotification(notifierId, newNotifier);
+								NotificationData.UpdateData(notifierId, newNotifier);
 							}
 						}
 
@@ -644,7 +636,7 @@ namespace MonoBuilder.Models
 							if (notifier.IsSynced)
 							{
 								notifier.IsSynced = false;
-								NotificationData.UpdateNotification(notifier.EntityID, notifier);
+								NotificationData.UpdateData(notifier.EntityID, notifier);
 							}
 						}
 

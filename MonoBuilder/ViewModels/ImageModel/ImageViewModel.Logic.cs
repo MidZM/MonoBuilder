@@ -68,7 +68,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 							image.FileKey = fileKey;
 						}
 
-						ImageData.UpdateImage(modifiedImage.EntityID, image);
+						ImageData.UpdateData(modifiedImage.EntityID, image);
 					}
 				}
 				else
@@ -78,7 +78,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 						image.FileKey = fileKey;
 					}
 
-					ImageData.AddImage(image);
+					ImageData.AddData(image);
 				}
 			}
 		}
@@ -102,7 +102,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 						foreach (MonoImage notification in SelectedEntities.ToArray())
 						{
 							notification.FileKey = targetFileKey;
-							ImageData.UpdateImage(notification.EntityID, notification);
+							ImageData.UpdateData(notification.EntityID, notification);
 						}
 					}
 					else
@@ -194,16 +194,16 @@ namespace MonoBuilder.ViewModels.ImageModel
 						if (question == DialogBoxResult.Retry ||
 							question == DialogBoxResult.Yes)
 						{
-							if (ImageData.ImageExistsInScript(image.EntityID))
+							if (ImageData.EntityExistsInScript(image.EntityID))
 							{
-								ImageData.RemoveImageFromScript(image.EntityID, false);
+								ImageData.RemoveEntityFromScript(image.EntityID, false);
 							}
 						}
 
 						if (question == DialogBoxResult.Continue ||
 							question == DialogBoxResult.Yes)
 						{
-							ImageData.RemoveImage(image.EntityID);
+							ImageData.RemoveData(image.EntityID);
 						}
 					}
 
@@ -243,7 +243,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 
 					foreach (MonoImage row in SelectedEntities)
 					{
-						var inScript = ImageData.ImageExistsInScript(row.Name, row.FileKey);
+						var inScript = ImageData.EntityExistsInScript(row.Name, row.FileKey);
 
 						if (inScript)
 						{
@@ -285,11 +285,11 @@ namespace MonoBuilder.ViewModels.ImageModel
 						var content = ImageData.ConvertToScriptContent(image);
 						if (inScript)
 						{
-							ImageData.UpdateImageInScript(image.Name, content);
+							ImageData.UpdateEntityInScript(image.Name, content);
 						}
 						else
 						{
-							ImageData.AddImageToScript(image.Name, content);
+							ImageData.AddEntityToScript(image.Name, content);
 						}
 					}
 
@@ -312,7 +312,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 
 		private void ExecuteImportImagesCommand(object? _)
 		{
-			var imageData = ImageData.SyncImages();
+			var imageData = ImageData.SyncData();
 			var duplicates = imageData.Keys
 				.Where(name => ImageData.ContainsName(name))
 				.ToList();
@@ -350,7 +350,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 							IsSynced = true
 						};
 
-						ImageData.UpdateImage(imageId, newImage);
+						ImageData.UpdateData(imageId, newImage);
 
 						imageData.Remove(image);
 					}
@@ -367,7 +367,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 			foreach (MonoImage image in imageData.Values)
 			{
 				image.IsSynced = true;
-				ImageData.AddImage(image);
+				ImageData.AddData(image);
 			}
 
 			//Converter.UnsetCharacterList();
