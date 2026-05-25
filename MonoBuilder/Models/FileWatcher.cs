@@ -427,15 +427,18 @@ namespace MonoBuilder.Models
                 try
                 {
                     var characterData = CharacterData.SyncData(true);
-                    var unsyncedCharacters = CharacterData.AllCharacters.ToList();
+					var existenceCheck = CharacterData.EntitiesExistInScript(CharacterData.DataMode.Collection
+						.Select(c => c.Name)
+						.ToHashSet());
+					var unsyncedCharacters = CharacterData.DataMode.Collection
+						.Where(c => existenceCheck.TryGetValue(c.Tag, out bool value) && !value)
+						.ToList();
 
                     if (characterData.Values.Count > 0)
                     {
                         foreach (var character in characterData.Values)
                         {
-                            unsyncedCharacters.Remove(unsyncedCharacters.First(c => c.Tag == character.Tag));
-
-                            int characterId = CharacterData.AllCharacters.First(c => c.Tag == character.Tag).EntityID;
+                            int characterId = CharacterData.DataMode.Collection.First(c => c.Tag == character.Tag).EntityID;
                             string name = character.Name;
                             string tag = character.Tag;
                             string fileKey = character.FileKey;
@@ -443,10 +446,12 @@ namespace MonoBuilder.Models
                             string? directory = character.Directory;
 
 
-                            Character newNormal = new(name, tag, color, directory);
-
-                            newNormal.FileKey = fileKey;
-                            newNormal.IsSynced = true;
+							Character newNormal = new(name, tag, color, directory)
+							{
+								EntityID = characterId,
+								FileKey = fileKey,
+								IsSynced = true
+							};
 
                             CharacterData.UpdateData(characterId, newNormal);
                         }
@@ -503,19 +508,23 @@ namespace MonoBuilder.Models
 
                 try
                 {
+					string originalDataMode = ImageData.DataModeTypeName.ToLower();
                     string[] modes = ["images", "scenes", "gallery"];
                     foreach (string mode in modes)
                     {
                         ImageData.SetDataMode(mode);
                         var imageData = ImageData.SyncData(true);
-						var unsyncedImages = ImageData.DataMode.Collection;
+						var existenceCheck = ImageData.EntitiesExistInScript(ImageData.DataMode.Collection
+							.Select(i => i.Name)
+							.ToHashSet());
+						var unsyncedImages = ImageData.DataMode.Collection
+							.Where(i => existenceCheck.TryGetValue(i.Name, out bool value) && !value)
+							.ToList();
 
                         if (imageData.Values.Count > 0)
                         {
                             foreach (var image in imageData.Values)
                             {
-                                unsyncedImages.Remove(unsyncedImages.First(i => i.Name == image.Name));
-
 								int imageId = ImageData.DataMode.Collection
 									.First(i => i.Name == image.Name)
 									.EntityID;
@@ -545,8 +554,13 @@ namespace MonoBuilder.Models
                         }
 					}
 
+					ImageData.SetDataMode(originalDataMode);
+
 					var context = CurrentContext!.DataContext as ImageViewModel;
-					context!.ClearSelectedEntities();
+					if (context != null)
+					{
+						context.ClearSelectedEntities();
+					}
 
 					if (shouldShowMessages)
                     {
@@ -588,19 +602,23 @@ namespace MonoBuilder.Models
 
                 try
                 {
+					string originalMode = NotificationData.DataModeTypeName.ToLower();
                     string[] modes = ["messages", "notifications"];
                     foreach (string mode in modes)
                     {
 						NotificationData.SetDataMode(mode);
                         var notifierData = NotificationData.SyncData(true);
-						var unsyncedNotifiers = NotificationData.DataMode.Collection;
+						var existenceCheck = NotificationData.EntitiesExistInScript(NotificationData.DataMode.Collection
+							.Select(n => n.Name)
+							.ToHashSet());
+						var unsyncedNotifiers = NotificationData.DataMode.Collection
+							.Where(n => existenceCheck.TryGetValue(n.Name, out bool value) && !value)
+							.ToList();
 
                         if (notifierData.Values.Count > 0)
                         {
                             foreach (var notifier in notifierData.Values)
                             {
-                                unsyncedNotifiers.Remove(unsyncedNotifiers.First(i => i.Name == notifier.Name));
-
 								var type = mode == modes[0] ? NotifierType.Message : NotifierType.Notification;
 								bool isMessage = type == NotifierType.Message;
 								int notifierId = NotificationData.DataMode.Collection.First(i => i.Name == notifier.Name).EntityID;
@@ -642,8 +660,13 @@ namespace MonoBuilder.Models
 
 					}
 
+					NotificationData.SetDataMode(originalMode);
+
 					var context = CurrentContext!.DataContext as NotifierViewModel;
-					context!.ClearSelectedEntities();
+					if (context != null)
+					{
+						context.ClearSelectedEntities();
+					}
 
                     if (shouldShowMessages)
                     {

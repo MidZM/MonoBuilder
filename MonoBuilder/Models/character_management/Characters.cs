@@ -1,12 +1,10 @@
 ﻿using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
-using MonoBuilder.Models.notification_management;
 using MonoBuilder.Views.ViewUtils;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace MonoBuilder.Models
@@ -67,12 +65,12 @@ namespace MonoBuilder.Models
 			{
 				Character character = new Character(name, tag, color, path)
 				{
-					EntityID = AllCharacters.Count,
+					EntityID = collection.Count,
 					FileKey = fileKey,
 					IsSynced = isSynced
 				};
 
-				AllCharacters.Add(character);
+				collection.Add(character);
 			}
 		}
 
@@ -322,7 +320,7 @@ namespace MonoBuilder.Models
 
 		public override Dictionary<string, bool> EntityContentMatches(List<string> tags, string? fileKey = null)
 		{
-			var results = tags.ToDictionary(t => t, _ => false);
+			var results = tags.ToDictionary(t => t, _ => true);
 			var remaining = new HashSet<string>(tags);
 
 			var masterGuide = DataMode.MasterGuideContent;
@@ -360,7 +358,7 @@ namespace MonoBuilder.Models
 				{
 					if (isEndCharacter)
 					{
-						var character = AllCharacters.FirstOrDefault(c => c.Tag == currentTag);
+						var character = DataMode.Collection.FirstOrDefault(c => c.Tag == currentTag);
 						if (character != null)
 						{
 							parsedAttributes.TryGetValue("name", out string? scriptName);
@@ -939,55 +937,6 @@ namespace MonoBuilder.Models
                 if (File.Exists(tempPath))
                     File.Delete(tempPath);
             }
-        }
-		#endregion
-
-		#region Synchronicity Checking
-		public override bool CheckSynchronicity(bool showMessage = true)
-        {
-            if (ApplicationSettings == null) return false;
-
-            bool charactersHaveChanged = false;
-            var files = GetDataFiles();
-
-            foreach (var (fileKey, _) in files)
-            {
-                var tagsInFile = AllCharacters
-                    .Where(c => (string.IsNullOrEmpty(c.FileKey)
-                        ? fileKey == ResolveDataFileKey()
-                        : c.FileKey == fileKey) && c.IsSynced)
-                    .Select(c => c.Tag)
-                    .ToList();
-
-                if (tagsInFile.Count == 0)
-                    continue;
-
-                var contentMatches = EntityContentMatches(tagsInFile, fileKey);
-
-                foreach (string tag in tagsInFile)
-                {
-                    contentMatches.TryGetValue(tag, out bool matches);
-                    if (!matches)
-                    {
-                        charactersHaveChanged = true;
-                        break;
-                    }
-                }
-
-                if (charactersHaveChanged)
-                    break;
-            }
-
-            if (charactersHaveChanged && showMessage)
-            {
-                DialogBox.Show(
-                    $"It looks like something changed from the last time the program was opened.\nCharacters that have been modified will appear as such when opening the settings screen.\n\nDue to the fragile nature of characters, synchronicity checks and changes cannot be disabled.",
-                    "Changes Have Been Made",
-                    DialogButtonDefaults.OK,
-                    DialogIcon.Warning);
-            }
-
-            return charactersHaveChanged;
         }
 		#endregion
 

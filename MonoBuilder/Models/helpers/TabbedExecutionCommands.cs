@@ -199,8 +199,11 @@ namespace MonoBuilder.Models.helpers
 					int currentEntityMerge = 0;
 					string mergeDialog = "";
 					int index = 0;
+					var entities = result == DialogBoxResult.Continue
+						? instance.SelectedEntities
+						: instance.DataController.DataMode.Collection;
 
-					foreach (TEntity entity in instance.SelectedEntities)
+					foreach (TEntity entity in entities)
 					{
 						var inScript = instance.DataController.EntityExistsInScript(entity.Name, entity.FileKey);
 
@@ -215,7 +218,7 @@ namespace MonoBuilder.Models.helpers
 
 						tags.Add((entity, inScript));
 
-						if (index == instance.SelectedEntities.Count - 1)
+						if (index == entities.Count - 1)
 						{
 							if (currentEntityMerge > maxEntityMerge)
 							{

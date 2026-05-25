@@ -2,7 +2,6 @@
 using MonoBuilder.Models;
 using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
-using MonoBuilder.Models.generics.interfaces;
 using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.image_management;
 using MonoBuilder.Models.notification_management;
@@ -13,7 +12,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using System.Windows.Input;
 
 namespace MonoBuilder.ViewModels.MainModel
 {

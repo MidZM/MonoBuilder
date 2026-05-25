@@ -76,7 +76,6 @@ namespace MonoBuilder.ViewModels._generic_models
 			Dictionary<string, string> elements = [];
 			foreach (var element in control)
 			{
-				System.Diagnostics.Debug.WriteLine(element.Tag);
 				if (element is TextBox textBox)
 				{
 					var split = textBox.Name.Split('_');

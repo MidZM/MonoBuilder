@@ -125,11 +125,6 @@ namespace MonoBuilder.Models.media_management
 			throw new NotImplementedException();
 		}
 
-		public override bool CheckSynchronicity(bool showMessage = true)
-		{
-			throw new NotImplementedException();
-		}
-
 		public override Dictionary<string, string?> ConvertToScriptContent(Media type)
 		{
 			throw new NotImplementedException();

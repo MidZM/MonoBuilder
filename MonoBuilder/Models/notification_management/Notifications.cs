@@ -387,7 +387,7 @@ namespace MonoBuilder.Models.notification_management
 
 		public override Dictionary<string, bool> EntityContentMatches(List<string> names, string? fileKey = null)
 		{
-			var results = names.ToDictionary(n => n, _ => false);
+			var results = names.ToDictionary(n => n, _ => true);
 			var remaining = new HashSet<string>(names);
 
 			var filePath = ResolveDataFilePath(fileKey, out _);
@@ -795,65 +795,6 @@ namespace MonoBuilder.Models.notification_management
 			{
 				if (File.Exists(tempPath)) File.Delete(tempPath);
 			}
-		}
-		#endregion
-
-		#region Synchronicity Checking
-		public override bool CheckSynchronicity(bool showMessage = true)
-		{
-			if (ApplicationSettings == null)
-				return false;
-
-			bool hasChanged = false;
-			string[] modes = ["messages", "notifications"];
-			foreach (var mode in modes)
-			{
-				SetDataMode(mode);
-				var files = GetDataFiles();
-				if (files.Count == 0)
-					return false;
-
-				foreach (var (fileKey, _) in files)
-				{
-					var namesInFile = DataMode.Collection
-						.Where(i => i.IsSynced &&
-									(string.IsNullOrEmpty(i.FileKey)
-										? fileKey == ResolveDataFileKey()
-										: i.FileKey == fileKey))
-						.Select(i => i.Name)
-						.ToList();
-
-					if (namesInFile.Count == 0)
-						continue;
-
-					var contentMatches = EntityContentMatches(namesInFile, fileKey);
-
-					foreach (string name in namesInFile)
-					{
-						if (contentMatches.TryGetValue(name, out bool matches) && !matches)
-						{
-							hasChanged = true;
-							break;
-						}
-					}
-
-					if (hasChanged) break;
-				}
-
-				if (hasChanged && showMessage)
-				{
-					DialogBox.Show(
-						"It looks like something changed from the last time the program was opened.\n" +
-						"Notifiers that have been modified will appear as such when opening the notifier builder.",
-						"Changes Have Been Made",
-						DialogButtonDefaults.OK,
-						DialogIcon.Warning);
-				}
-
-				if (hasChanged) break;
-			}
-
-			return hasChanged;
 		}
 		#endregion
 

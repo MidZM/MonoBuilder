@@ -138,6 +138,21 @@ namespace MonoBuilder.Models
 			return files;
 		}
 
+		private Dictionary<string, string> GetDataFiles(string name)
+		{
+			if (ApplicationSettings == null) return [];
+
+			var files = ApplicationSettings.GetAllFilePaths(name);
+			if (files.Count == 0)
+			{
+				var legacyPath = ApplicationSettings.GetFilePath(name);
+				if (!string.IsNullOrEmpty(legacyPath))
+					files[name] = legacyPath;
+			}
+
+			return files;
+		}
+
 		protected string? ResolveDataFileKey(string? fileKey = null)
 		{
 			var files = GetDataFiles();
@@ -445,7 +460,61 @@ namespace MonoBuilder.Models
 		#endregion
 
 		#region Synchronicity Checks
-		public abstract bool CheckSynchronicity(bool showMessage = true);
+		public bool CheckSynchronicity(bool showMessage = true)
+		{
+			if (ApplicationSettings == null) return false;
+
+			bool hasChanged = false;
+			var modes = AllDataModes.Values;
+			foreach (var mode in modes)
+			{
+				var files = GetDataFiles(mode.TypeName);
+				if (files.Count == 0) return false;
+
+				foreach (var (fileKey, _) in files)
+				{
+					var namesInFile = mode.Collection
+						.Where(elm => elm.IsSynced &&
+									string.IsNullOrEmpty(elm.FileKey)
+										? fileKey == ResolveDataFileKey()
+										: elm.FileKey == fileKey)
+						.Select(elm =>
+						{
+							if (elm is Character character) return character.Tag;
+							else return elm.Name;
+						})
+						.ToList();
+
+					if (namesInFile.Count == 0) continue;
+
+					var contentMatches = EntityContentMatches(namesInFile, fileKey);
+
+					foreach (string name in namesInFile)
+					{
+						if (contentMatches.TryGetValue(name, out bool matches) && !matches)
+						{
+							hasChanged = true;
+							break;
+						}
+					}
+
+					if (hasChanged) break;
+				}
+
+				if (hasChanged && showMessage)
+				{
+					DialogBox.Show(
+						"It looks like something changed from the last time the program was opened.\n" +
+						$"{mode.TypeName} that have been modified will appear as such when opening the image builder.",
+						"Changes Have Been Made",
+						DialogButtonDefaults.OK,
+						DialogIcon.Warning);
+					break;
+				}
+			}
+
+			return hasChanged;
+		}
 		#endregion
 
 		#endregion
