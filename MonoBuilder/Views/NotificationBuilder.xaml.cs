@@ -2,6 +2,7 @@
 using MonoBuilder.Models;
 using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
+using MonoBuilder.Models.generics.interfaces;
 using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.notification_management;
 using MonoBuilder.ViewModels.NotifierModel;
@@ -37,7 +38,7 @@ namespace MonoBuilder.Views
 
 			NotifierViewModel settingsViewModel = new()
 			{
-				NotifierData = notificationData,
+				DataController = notificationData,
 				ApplicationSettings = settings,
 				Owner = this
 			};
@@ -73,7 +74,7 @@ namespace MonoBuilder.Views
 
 				if (selectedNotifiers.Count > 0 && selectedItem != null)
 				{
-					var match = NotifierViewModel.GetFileKey.Match(selectedItem);
+					var match = IBuilderTabbedModel<Notification>.GetFileKey.Match(selectedItem);
 
 					if (match.Success)
 					{
@@ -83,7 +84,7 @@ namespace MonoBuilder.Views
 							foreach (Notification notif in selectedNotifiers)
 							{
 								notif.FileKey = targetFileKey;
-								context?.NotifierData.UpdateData(notif.EntityID, notif);
+								context?.DataController.UpdateData(notif.EntityID, notif);
 							}
 						}
 						else
@@ -117,7 +118,7 @@ namespace MonoBuilder.Views
 				{
 					if (ContextMoveNotification.ItemContainerGenerator.ContainerFromItem(item) is MenuItem container)
 					{
-						var match = NotifierViewModel.GetFileKey.Match(item?.ToString() ?? string.Empty);
+						var match = IBuilderTabbedModel<Notification>.GetFileKey.Match(item?.ToString() ?? string.Empty);
 						container.Icon = match.Success && commonFileKey != null && match.Groups[1].Value == commonFileKey
 							? new TextBlock
 							{

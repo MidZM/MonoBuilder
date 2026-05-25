@@ -139,9 +139,9 @@
                     ItemsSource="{Binding DataViewSource.View}"
                     SelectedItem="{Binding SelectedEntity, Mode=TwoWay}"
                     SelectionChanged="ImagesDataGrid_SelectionChanged"
-                    Tag="{Binding AvailableFiles, RelativeSource={RelativeSource AncestorType=Window}}">
+                    Tag="{Binding DataContext.AvailableFiles, RelativeSource={RelativeSource AncestorType=Window}}">
                     <DataGrid.InputBindings>
-                        <MouseBinding Command="{Binding ModifyImagesCommand}" Gesture="LeftDoubleClick" />
+                        <MouseBinding Command="{Binding ModifyDataCommand}" Gesture="LeftDoubleClick" />
                     </DataGrid.InputBindings>
 
                     <DataGrid.ContextMenu>
@@ -153,7 +153,7 @@
                                 SubmenuOpened="ContextMoveImage_SubmenuOpened">
                                 <MenuItem.ItemContainerStyle>
                                     <Style TargetType="MenuItem">
-                                        <Setter Property="Command" Value="{Binding DataContext.MoveImageCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <Setter Property="Command" Value="{Binding DataContext.MoveDataCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                         <Setter Property="CommandParameter" Value="{Binding RelativeSource={RelativeSource Self}}" />
                                     </Style>
                                 </MenuItem.ItemContainerStyle>
@@ -161,15 +161,15 @@
                             <Separator />
                             <MenuItem
                                 x:Name="ContextAddImage"
-                                Command="{Binding AddImagesCommand}"
+                                Command="{Binding AddDataCommand}"
                                 Header="Add Image" />
                             <MenuItem
                                 x:Name="ContextModifyImage"
-                                Command="{Binding ModifyImagesCommand}"
+                                Command="{Binding ModifyDataCommand}"
                                 Header="Modify Image" />
                             <MenuItem
                                 x:Name="ContextRemoveImage"
-                                Command="{Binding RemoveImagesCommand}"
+                                Command="{Binding RemoveDataCommand}"
                                 Header="Remove Image" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
@@ -217,7 +217,7 @@
                     Margin="5"
                     Padding="2"
                     HorizontalAlignment="Center"
-                    Command="{Binding AddImagesCommand}"
+                    Command="{Binding AddDataCommand}"
                     Content="Add Image Assets"
                     Style="{StaticResource DefaultButton}" />
                 <Button
@@ -227,7 +227,7 @@
                     Margin="5"
                     Padding="2"
                     HorizontalAlignment="Center"
-                    Command="{Binding ModifyImagesCommand}"
+                    Command="{Binding ModifyDataCommand}"
                     Content="Modify Image Assets"
                     Style="{StaticResource DefaultButton}" />
                 <Button
@@ -237,7 +237,7 @@
                     Margin="5"
                     Padding="2"
                     HorizontalAlignment="Center"
-                    Command="{Binding RemoveImagesCommand}"
+                    Command="{Binding RemoveDataCommand}"
                     Content="Remove Image Assets"
                     Style="{StaticResource ErrorButton}" />
                 <Button
@@ -257,7 +257,7 @@
                     Margin="5"
                     Padding="2"
                     HorizontalAlignment="Center"
-                    Command="{Binding ImportImagesCommand}"
+                    Command="{Binding ImportDataCommand}"
                     Content="Import Image Assets"
                     Style="{StaticResource DefaultButton}" />
             </Grid>

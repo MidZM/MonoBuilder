@@ -7,7 +7,7 @@ using System.Text;
 
 namespace MonoBuilder.Models.character_management
 {
-    public class Layer : BaseViewModel, INamedEntity
+	public class Layer : BaseViewModel, INamedEntity
     {
         private int _id;
         private string _name;
@@ -62,7 +62,7 @@ namespace MonoBuilder.Models.character_management
             }
         }
 
-        public Layer(string name, int index, IEnumerable<LayerAsset>? layers = null)
+		public Layer(string name, int index, IEnumerable<LayerAsset>? layers = null)
         {
             _name = name;
             _index = index;

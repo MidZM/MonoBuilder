@@ -8,10 +8,10 @@ using System.Windows.Media.Imaging;
 
 namespace MonoBuilder.ViewModels.ImageModel
 {
-    public partial class ImageViewModel : TabbedContentModel<MonoImage>
+    public partial class ImageViewModel : TabbedContentModel<MonoImages, MonoImage>
     {
 		#region SystemManagement Properties
-		public required MonoImages ImageData { get; set; }
+		public override required MonoImages DataController { get; init; }
 		#endregion
 
 		#region State Management Properties
@@ -91,21 +91,6 @@ namespace MonoBuilder.ViewModels.ImageModel
 				_cachedBorderSize,
 				EditingContentColumnWidth + 1);
 
-			MoveImagesCommand = new(ExecuteMoveImagesCommand);
-			ExitCommand = new(ExecuteExitCommand);
-
-			AddImagesCommand = new(ExecuteAddImagesCommand, AddCanExecute);
-			ModifyImagesCommand = new(ExecuteModifyImagesCommand, ModifyOrRemoveCanExecute);
-			RemoveImagesCommand = new(ExecuteRemoveImagesCommand, ModifyOrRemoveCanExecute);
-			SaveToScriptCommand = new(ExecuteSaveToScriptCommand, AddCanExecute);
-			ImportImagesCommand = new(ExecuteImportImagesCommand, AddCanExecute);
-
-			SelectedEntities.CollectionChanged += (s, e) =>
-			{
-				ModifyImagesCommand.RaiseCanExecuteChanged();
-				RemoveImagesCommand.RaiseCanExecuteChanged();
-			};
-
 			PropertyChanged += (s, e) =>
 			{
 				if (e.PropertyName == nameof(SelectedEntity))
@@ -136,10 +121,10 @@ namespace MonoBuilder.ViewModels.ImageModel
 		public void RunInitializations(string mode)
 		{
 			Mode = mode;
-			ImageData.SetDataMode(mode.ToLower());
+			DataController.SetDataMode(mode.ToLower());
 
 			InitializeAvailableFiles(mode);
-			InitializeDataTabs(mode, ImageData.DataMode.Collection);
+			InitializeDataTabs(mode, DataController.DataMode.Collection);
 		}
 		#endregion
 	}

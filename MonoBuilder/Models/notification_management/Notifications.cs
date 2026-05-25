@@ -41,6 +41,7 @@ namespace MonoBuilder.Models.notification_management
 		};
 
 		public override AssetStore<Notification> DataMode { get; set; }
+		protected override string SaveString { get; } = "notifications";
 
 		private static Regex BodyRegex = new(@"^([""'`]?)(?<id>.*)\1.*[:]*[\{] (// MESSAGE_START|// NOTIFICATION_START)$", RegexOptions.Compiled);
 		private static Regex AttributeRegex = new(@"^([""'`]?)(?<key>.*)\1[:] (?<attr>.*)$", RegexOptions.Compiled);
@@ -55,11 +56,13 @@ namespace MonoBuilder.Models.notification_management
 
 			DataMode = _messages;
 
-			LoadData();
+			LoadData(SaveString);
 		}
 
 		#region Handle File Data
-		private void LoadNotification(XElement element, NotifierType type, ObservableCollection<Notification> collectionType)
+
+		#region Data Loading Utilities
+		protected override void LoadElement(XElement element, ObservableCollection<Notification> collectionType, object? type)
 		{
 			string? notificationID = (string?)element.Attribute("NotificationID");
 			string? title = (string?)element.Attribute("Title");
@@ -70,9 +73,10 @@ namespace MonoBuilder.Models.notification_management
 			_ = bool.TryParse((string?)element.Attribute("IsSynced"), out bool isSynced);
 			string? body = element.Value;
 
+			var notifierType = (NotifierType?)type ?? NotifierType.Message;
 			if (notificationID != null)
 			{
-				Notification newNotification = new(notificationID, title, icon, type)
+				Notification newNotification = new(notificationID, title, icon, notifierType)
 				{
 					EntityID = collectionType.Count,
 					FileKey = fileKey,
@@ -80,12 +84,12 @@ namespace MonoBuilder.Models.notification_management
 					Body = body
 				};
 
-				if (type == NotifierType.Message && subtitle != null)
+				if (notifierType == NotifierType.Message && subtitle != null)
 				{
 					newNotification.Subtitle = subtitle;
 					newNotification.CloseAction = closeAction;
 				}
-				else if (type == NotifierType.Notification && icon != null)
+				else if (notifierType == NotifierType.Notification && icon != null)
 				{
 					newNotification.Icon = icon;
 				}
@@ -94,85 +98,39 @@ namespace MonoBuilder.Models.notification_management
 			}
 		}
 
-		public override void LoadData()
+		protected override (AssetStore<Notification>, List<XElement>)[] GetLoadData()
+			=> [(_messages, SystemData.Descendants("Message").ToList()),
+				(_notifications, SystemData.Descendants("Notification").ToList())];
+		protected override object? GetSpecialIdentifier()
+			=> DataModeTypeName == "Messages" ? NotifierType.Message : NotifierType.Notification;
+		#endregion
+
+		#region Data Saving Utilities
+		private XElement SaveElement(string type, AssetStore<Notification> store, NotifierType notifierType)
 		{
-			try
-			{
-				if (!Directory.Exists("data"))
-					Directory.CreateDirectory("data");
-
-				if (!File.Exists("data/notifications.xml"))
-				{
-					SaveData();
-					return;
-				}
-
-				SystemData = XDocument.Load("data/notifications.xml");
-				_messages.Collection.Clear();
-				_notifications.Collection.Clear();
-
-				foreach (XElement message in SystemData.Descendants("Message").ToList())
-					LoadNotification(message, NotifierType.Message, _messages.Collection);
-
-				foreach (XElement notification in SystemData.Descendants("Notification").ToList())
-					LoadNotification(notification, NotifierType.Notification, _notifications.Collection);
-
-				if (_messages.Collection.Any())
-					_messages.NextId = _messages.Collection.Max(i => i.EntityID) + 1;
-
-				if (_notifications.Collection.Any())
-					_notifications.NextId = _notifications.Collection.Max(s => s.EntityID) + 1;
-
-				RebuildLookups("messages");
-				RebuildLookups("notifications");
-			}
-			catch (FileNotFoundException error)
-			{
-				DialogBox.Show($"Save Data Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
-			catch (XmlException error)
-			{
-				DialogBox.Show($"Notifications File Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
-			catch (Exception error)
-			{
-				DialogBox.Show($"Something went wrong!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
+			return new XElement(store.TypeName,
+				store.Collection.Select(element => new XElement(type,
+					new XAttribute("EntityID", element.EntityID),
+					new XAttribute("NotificationID", element.Name),
+					new XAttribute("Title", element.Title ?? string.Empty),
+					notifierType == NotifierType.Message
+						? new XAttribute("Subtitle", element.Subtitle ?? string.Empty)
+						: new XAttribute("Icon", element.Icon ?? string.Empty),
+					notifierType == NotifierType.Message
+						? new XAttribute("CloseAction", element.CloseAction ?? string.Empty)
+						: null,
+					!string.IsNullOrEmpty(element.FileKey)
+						? new XAttribute("FileKey", element.FileKey)
+						: null,
+					new XAttribute("IsSynced", element.IsSynced),
+					new XCData(element.Body ?? string.Empty))));
 		}
 
-		public override void SaveData()
-		{
-			SystemData = new XDocument(
-				new XDeclaration("1.0", "utf-8", "yes"),
-				new XElement("Root",
-					new XElement(GetDataMode("messages")?.TypeName ?? string.Empty,
-						_messages.Collection.Select(m => new XElement("Message",
-							new XAttribute("DataID", m.EntityID),
-							new XAttribute("NotificationID", m.Name),
-							new XAttribute("Title", m.Title ?? string.Empty),
-							new XAttribute("Subtitle", m.Subtitle ?? string.Empty),
-							new XAttribute("CloseAction", m.CloseAction ?? string.Empty),
-							!string.IsNullOrEmpty(m.FileKey) ? new XAttribute("FileKey", m.FileKey) : null,
-							new XAttribute("IsSynced", m.IsSynced),
-							new XCData(m.Body ?? string.Empty)
-						))
-					),
-					new XElement(GetDataMode("notifications")?.TypeName ?? string.Empty,
-						_notifications.Collection.Select(n => new XElement("Notification",
-							new XAttribute("DataID", n.EntityID),
-							new XAttribute("NotificationID", n.Name),
-							new XAttribute("Title", n.Title ?? string.Empty),
-							new XAttribute("Icon", n.Icon ?? string.Empty),
-							!string.IsNullOrEmpty(n.FileKey) ? new XAttribute("FileKey", n.FileKey) : null,
-							new XAttribute("IsSynced", n.IsSynced),
-							new XCData(n.Body ?? string.Empty)
-						))
-					)
-				)
-			);
+		protected override XElement[] GetSaveData()
+			=> [SaveElement("Message", (AssetStore<Notification>)GetDataMode("messages")!, NotifierType.Message),
+				SaveElement("Notification", (AssetStore<Notification>)GetDataMode("notifications")!, NotifierType.Notification)];
+		#endregion
 
-			SystemData.Save("data/notifications.xml");
-		}
 		#endregion
 
 		#region Sync Notifiers to the Program
@@ -652,7 +610,7 @@ namespace MonoBuilder.Models.notification_management
 					{
 						notif.FileKey = resolvedFileKey;
 						notif.IsSynced = true;
-						SaveData();
+						SaveData(SaveString);
 					}
 				}
 				else
@@ -708,7 +666,7 @@ namespace MonoBuilder.Models.notification_management
 				foreach (var (filePath, notificationsInFile) in notificationsByFile)
 					RemoveEntityFromSingleFile(filePath, notificationsInFile);
 
-				if (shouldSave) SaveData();
+				if (shouldSave) SaveData(SaveString);
 				return true;
 			}
 			catch (Exception ex)
@@ -815,7 +773,7 @@ namespace MonoBuilder.Models.notification_management
 					if (CheckData(name) is Notification notifier)
 					{
 						notifier.IsSynced = true;
-						SaveData();
+						SaveData(SaveString);
 					}
 				}
 				else

@@ -27,7 +27,7 @@ namespace MonoBuilder.Views.ViewUtils
 			ImageViewModel imageViewModel = new()
 			{
 				Owner = this,
-				ImageData = imageData,
+				DataController = imageData,
 				ApplicationSettings = settings
 			};
 			DataContext = imageViewModel;

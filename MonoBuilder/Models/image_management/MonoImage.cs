@@ -9,10 +9,10 @@ namespace MonoBuilder.Models.image_management
     public class MonoImage : BaseViewModel, INamedEntity, IMultiFile
     {
         private int _id = -1;
-        private string _name = "";
-        private string _path = "";
-        private string _fileKey = "";
-        private bool _synced = false;
+		private string _name = string.Empty;
+        private string _path = string.Empty;
+        private string _fileKey = string.Empty;
+        private bool _isSynced = false;
 
         public int EntityID
         {
@@ -64,10 +64,10 @@ namespace MonoBuilder.Models.image_management
 
         public bool IsSynced
         {
-            get => _synced;
+            get => _isSynced;
             set
             {
-                if (SetProperty(ref _synced, value))
+                if (SetProperty(ref _isSynced, value))
                 {
                     OnPropertyChanged(nameof(IsSynced));
                 }

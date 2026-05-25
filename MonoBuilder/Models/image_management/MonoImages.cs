@@ -1,14 +1,11 @@
 ﻿using MonoBuilder.Views.ViewUtils;
 using MonoBuilder.Models.generics.enums;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
-using System.Diagnostics;
 
 namespace MonoBuilder.Models.image_management
 {
@@ -41,8 +38,10 @@ namespace MonoBuilder.Models.image_management
 		};
 
         public override AssetStore<MonoImage> DataMode { get; set; }
+		protected override string SaveString { get; } = "images";
 
-        private static Regex ImageRegex { get; set; } = new(@"^([""'`]?)(?<name>.*)\1.*[:]*[""'`](?<content>.*)\1[,]?$", RegexOptions.Compiled);
+
+		private static Regex ImageRegex { get; set; } = new(@"^([""'`]?)(?<name>.*)\1.*[:]*[""'`](?<content>.*)\1[,]?$", RegexOptions.Compiled);
 		
         public MonoImages()
         {
@@ -55,19 +54,20 @@ namespace MonoBuilder.Models.image_management
 
             DataMode = _images;
 
-            LoadData();
+            LoadData(SaveString);
         }
 
-        #region Handle File Data
-        private void LoadImage(XElement image, ObservableCollection<MonoImage> collectionType)
+		#region Handle File Data
+
+		#region Data Loading Utilities
+		protected override void LoadElement(XElement image, ObservableCollection<MonoImage> collectionType, object? special = null)
         {
             string? name = (string?)image.Attribute("Name");
             string? path = (string?)image.Attribute("Path");
             string? fileKey = (string?)image.Attribute("FileKey") ?? string.Empty;
             _ = bool.TryParse((string?)image.Attribute("IsSynced"), out bool isSynced);
 
-            if (name != null &&
-                path != null)
+            if (name != null && path != null)
             {
                 MonoImage newImage = new(name, path)
                 {
@@ -80,110 +80,32 @@ namespace MonoBuilder.Models.image_management
             }
         }
 
-        public override void LoadData()
-        {
-            try
-            {
-                if (!Directory.Exists("data"))
-                {
-                    Directory.CreateDirectory("data");
-                }
+		protected override (AssetStore<MonoImage>, List<XElement>)[] GetLoadData()
+			=> [(_images, SystemData.Descendants("Image").ToList()),
+				(_scenes, SystemData.Descendants("Scene").ToList()),
+				(_gallery, SystemData.Descendants("GalleryImage").ToList())];
+		#endregion
 
-                if (!File.Exists("data/images.xml"))
-                {
-                    SaveData();
-                    return;
-                }
+		#region Data Saving Utilities
+		private XElement SaveElement(string type, AssetStore<MonoImage> store)
+		{
+			return new XElement(store.TypeName,
+				store.Collection.Select(element => new XElement(type,
+					new XAttribute("EntityID", element.EntityID),
+					new XAttribute("Name", element.Name),
+					new XAttribute("Path", element.Path),
+					!string.IsNullOrEmpty(element.FileKey) ? new XAttribute("FileKey", element.FileKey) : null,
+					new XAttribute("IsSynced", element.IsSynced)
+					))
+				);
+		}
 
-                SystemData = XDocument.Load("data/images.xml");
-                _images.Collection.Clear();
-                _scenes.Collection.Clear();
-                _gallery.Collection.Clear();
+		protected override XElement[] GetSaveData()
+			=> [SaveElement("Image", (AssetStore<MonoImage>)GetDataMode("images")!),
+				SaveElement("Scene", (AssetStore<MonoImage>)GetDataMode("scenes")!),
+				SaveElement("GalleryImage", (AssetStore<MonoImage>)GetDataMode("gallery")!)];
+		#endregion
 
-                List<XElement> imageList = SystemData.Descendants("Image").ToList();
-                List<XElement> sceneList = SystemData.Descendants("Scene").ToList();
-                List<XElement> galleryList = SystemData.Descendants("GalleryImage").ToList();
-
-                foreach (XElement image in imageList)
-                {
-                    LoadImage(image, _images.Collection);
-                }
-
-                foreach(XElement scene in sceneList)
-                {
-                    LoadImage(scene, _scenes.Collection);
-                }
-
-                foreach (XElement image in galleryList)
-                {
-                    LoadImage(image, _gallery.Collection);
-                }
-
-                if (_images.Collection.Any())
-                    _images.NextId = _images.Collection.Max(i => i.EntityID) + 1;
-
-                if (_scenes.Collection.Any())
-                    _scenes.NextId = _scenes.Collection.Max(s => s.EntityID) + 1;
-
-                if (_gallery.Collection.Any())
-                    _gallery.NextId = _gallery.Collection.Max(i => i.EntityID) + 1;
-                    
-
-                RebuildLookups("images");
-                RebuildLookups("scenes");
-                RebuildLookups("gallery");
-            }
-            catch (FileNotFoundException error)
-            {
-                DialogBox.Show($"Save Data Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-            }
-            catch (XmlException error)
-            {
-                DialogBox.Show($"Images File Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-            }
-            catch (Exception error)
-            {
-                DialogBox.Show($"Something went wrong!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-            }
-        }
-
-        public override void SaveData()
-        {
-            SystemData = new XDocument(
-                new XDeclaration("1.0", "utf-8", "yes"),
-                new XElement("Root",
-                    new XElement(GetDataMode("images")?.TypeName ?? string.Empty,
-                        _images.Collection.Select(i => new XElement("Image",
-                            new XAttribute("ImageID", i.EntityID),
-                            new XAttribute("Name", i.Name),
-                            new XAttribute("Path", i.Path),
-                            !string.IsNullOrEmpty(i.FileKey) ? new XAttribute("FileKey", i.FileKey) : null,
-                            new XAttribute("IsSynced", i.IsSynced)
-                        ))
-                    ),
-                    new XElement(GetDataMode("scenes")?.TypeName ?? string.Empty,
-                        _scenes.Collection.Select(s => new XElement("Scene",
-                            new XAttribute("SceneID", s.EntityID),
-                            new XAttribute("Name", s.Name),
-                            new XAttribute("Path", s.Path),
-                            !string.IsNullOrEmpty(s.FileKey) ? new XAttribute("FileKey", s.FileKey) : null,
-                            new XAttribute("IsSynced", s.IsSynced)
-                        ))
-                    ),
-                    new XElement(GetDataMode("gallery")?.TypeName ?? string.Empty,
-                        _gallery.Collection.Select(s => new XElement("GalleryImage",
-                            new XAttribute("SceneID", s.EntityID),
-                            new XAttribute("Name", s.Name),
-                            new XAttribute("Path", s.Path),
-                            !string.IsNullOrEmpty(s.FileKey) ? new XAttribute("FileKey", s.FileKey) : null,
-                            new XAttribute("IsSynced", s.IsSynced)
-                        ))
-                    )
-                )
-            );
-
-            SystemData.Save("data/images.xml");
-        }
         #endregion
 
         #region Sync images to the program
@@ -455,7 +377,7 @@ namespace MonoBuilder.Models.image_management
                     {
                         image.FileKey = resolvedFileKey;
                         image.IsSynced = true;
-                        SaveData();
+                        SaveData(SaveString);
                     }
                 }
                 else
@@ -513,7 +435,7 @@ namespace MonoBuilder.Models.image_management
                     RemoveEntityFromSingleFile(filePath, imagesInFile);
                 }
 
-                if (shouldSave) SaveData();
+                if (shouldSave) SaveData(SaveString);
 
                 return true;
             }
@@ -641,7 +563,7 @@ namespace MonoBuilder.Models.image_management
                 {
                     image.FileKey = resolvedFileKey;
                     image.IsSynced = true;
-                    SaveData();
+                    SaveData(SaveString);
                 }
 
                 return true;

@@ -111,7 +111,7 @@ namespace MonoBuilder.Models
 
     public partial class ScriptConversion
     {
-        private Characters CharacterDatabase { get; set; }
+        private Characters CharacterData { get; set; }
         private ActionHelper ActionUtility { get; set; }
 
         public List<ConversionRule> ConversionRules { get; set; } = new()
@@ -145,7 +145,7 @@ namespace MonoBuilder.Models
 
         public ScriptConversion(Characters characters, ActionHelper actionHelper)
         {
-            CharacterDatabase = characters;
+            CharacterData = characters;
             ActionUtility = actionHelper;
             InlineFormatTags = ActionUtility.AllActions.ToArray();
 
@@ -380,8 +380,8 @@ namespace MonoBuilder.Models
 
 		private void GetCharacterList()
 		{
-			_characterList ??= CharacterDatabase.AllCharacters.ToDictionary(c => c.Name.ToLower(), c => c);
-			_characterTagList ??= CharacterDatabase.AllCharacters.ToDictionary(c => c.Tag, c => c);
+			_characterList ??= CharacterData.DataMode.Collection.ToDictionary(c => c.Name.ToLower(), c => c);
+			_characterTagList ??= CharacterData.DataMode.Collection.ToDictionary(c => c.Tag, c => c);
 		}
 
 		public void UnsetCharacterList()

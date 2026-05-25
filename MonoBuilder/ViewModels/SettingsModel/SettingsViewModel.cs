@@ -1,25 +1,18 @@
-﻿using Microsoft.Win32;
-using MonoBuilder.Commands;
+﻿using MonoBuilder.Commands;
 using MonoBuilder.Models;
 using MonoBuilder.Models.character_management;
-using MonoBuilder.Models.generics.enums;
-using MonoBuilder.Models.generics.interfaces;
 using MonoBuilder.ViewModels._generic_models;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
-using System.Text.RegularExpressions;
 using System.Windows;
-using System.Windows.Data;
-using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace MonoBuilder.ViewModels.SettingsModel
 {
-    public partial class SettingsViewModel : TabbedModel<Character>
+    public partial class SettingsViewModel : TabbedContentModel<Characters, Character>
     {
 		#region System Management Properties
-		public required Characters CharacterData { get; set; }
+		public override required Characters DataController { get; init; }
 		public required ScriptConversion Converter { get; set; }
 		#endregion
 
@@ -124,7 +117,7 @@ namespace MonoBuilder.ViewModels.SettingsModel
 		}
 		#endregion
 
-		public SettingsViewModel()
+		public SettingsViewModel() : base(new())
 		{
 			_cachedMarginSize = DataGridMargin.Left * 2;
 			_cachedBorderSize = DataGridBorderThickness.Left * 2;
@@ -133,28 +126,13 @@ namespace MonoBuilder.ViewModels.SettingsModel
 				_cachedMarginSize,
 				_cachedBorderSize);
 
-			MoveCharacterCommand = new(ExecuteMoveCharacterCommand);
-
-			AddCharactersCommand = new(ExecuteAddCharactersCommand, AddCanExecute);
-			ModifyCharactersCommand = new(ExecuteModifyCharactersCommand, ModifyOrRemoveCanExecute);
-			RemoveCharactersCommand = new(ExecuteRemoveCharactersCommand, ModifyOrRemoveCanExecute);
-			SaveToScriptCommand = new(ExecuteSaveToScriptCommand, AddCanExecute);
-			ImportCharactersCommand = new(ExecuteImportCharactersCommand, AddCanExecute);
-
 			SaveDataCommand = new(ExecuteSaveDataCommand, SaveCanExecute);
-			ExitCommand = new(ExecuteExitCommand);
 
 			CheckBoxCommand = new(ExecuteCheckBoxCommand);
 			TextBoxCommand = new(ExecuteTextBoxComand);
 			NumberBoxCommand = new(ExecuteNumberBoxCommand);
 
-			SelectedBasePath.AddCommandRange([AddCharactersCommand, SaveToScriptCommand, ImportCharactersCommand]);
-
-			SelectedEntities.CollectionChanged += (s, e) =>
-			{
-				ModifyCharactersCommand.RaiseCanExecuteChanged();
-				RemoveCharactersCommand.RaiseCanExecuteChanged();
-			};
+			SelectedBasePath.AddCommandRange([AddDataCommand, SaveToScriptCommand, ImportDataCommand]);
 		}
 
 		#region State Management Methods
@@ -183,10 +161,11 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			}
 
 			Converter.UnsetSortedRules();
+			Converter.UnsetCharacterList();
 
 			string type = "Characters";
 			InitializeAvailableFiles(type);
-			InitializeDataTabs(type, CharacterData.DataMode.Collection);
+			InitializeDataTabs(type, DataController.DataMode.Collection);
 			InitializeMultiFileEntries();
 			SetupAutomaticNotifications();
 		}
@@ -237,10 +216,10 @@ namespace MonoBuilder.ViewModels.SettingsModel
 									{
 										var type = "Characters";
 										InitializeAvailableFiles(type);
-										InitializeDataTabs(type, CharacterData.DataMode.Collection);
+										InitializeDataTabs(type, DataController.DataMode.Collection);
 
-										AddCharactersCommand.RaiseCanExecuteChanged();
-										ImportCharactersCommand.RaiseCanExecuteChanged();
+										AddDataCommand.RaiseCanExecuteChanged();
+										ImportDataCommand.RaiseCanExecuteChanged();
 										SaveToScriptCommand.RaiseCanExecuteChanged();
 
 										timer.Stop();
@@ -306,8 +285,8 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			if (e.PropertyName == nameof(FileEntry.Path))
 			{
 				OnPropertyChanged(nameof(HasScriptFile));
-				AddCharactersCommand.RaiseCanExecuteChanged();
-				ImportCharactersCommand.RaiseCanExecuteChanged();
+				AddDataCommand.RaiseCanExecuteChanged();
+				ImportDataCommand.RaiseCanExecuteChanged();
 				SaveToScriptCommand.RaiseCanExecuteChanged();
 			}
 		}

@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace MonoBuilder.Models.character_management
 {
-    public class Character : BaseViewModel, INamedEntity, IMultiFile
+	public class Character : BaseViewModel, INamedEntity, IMultiFile
     {
         private int _id;
         private string _name = "";

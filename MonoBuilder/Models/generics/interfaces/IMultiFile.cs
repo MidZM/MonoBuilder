@@ -7,5 +7,6 @@ namespace MonoBuilder.Models.generics.interfaces
     public interface IMultiFile
     {
         string FileKey { get; set; }
+		bool IsSynced { get; set; }
     }
 }

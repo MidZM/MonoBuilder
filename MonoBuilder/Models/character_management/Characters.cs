@@ -11,18 +11,7 @@ using System.Xml.Linq;
 
 namespace MonoBuilder.Models
 {
-    public class CharacterStructure
-    {
-        public string Name { get; set; } = "";
-        public string Tag { get; set; } = "";
-        public string? Color { get; set; }
-        public string? Directory { get; set; }
-        public object? Sprites { get; set; }
-        public string FileKey { get; set; } = "";
-        public bool IsSynced { get; set; } = false;
-    }
-
-    public partial class Characters : MonoSystem<Character>
+	public partial class Characters : MonoSystem<Character>
     {
 		private readonly AssetStore<Character> _characters = new()
 		{
@@ -39,6 +28,7 @@ namespace MonoBuilder.Models
 		};
 
 		public override AssetStore<Character> DataMode { get; set; }
+		protected override string SaveString { get; } = "characters";
 
         public ObservableCollection<Character> AllCharacters { get; private set; }
 
@@ -58,91 +48,58 @@ namespace MonoBuilder.Models
 
 			DataMode = _characters;
 
-            LoadData();
+            LoadData(SaveString);
 		}
 
 		#region Handle File Data
-		public override void LoadData()
-        {
-            try
-            {
-                if (!Directory.Exists("data"))
-                {
-                    Directory.CreateDirectory("data");
-                }
 
-                if (!File.Exists("data/characters.xml"))
-                {
-                    SaveData();
-                    return;
-                }
+		#region Data Loading Utilities
+		protected override void LoadElement(XElement element, ObservableCollection<Character> collection, object? special = null)
+		{
+			string? name = (string?)element.Attribute("Name");
+			string? tag = (string?)element.Attribute("Tag");
+			string? color = (string?)element.Attribute("Color");
+			string? path = (string?)element.Attribute("Path");
+			string fileKey = (string?)element.Attribute("FileKey") ?? string.Empty;
+			_ = bool.TryParse((string?)element.Attribute("IsSynced"), out bool isSynced);
 
-                SystemData = XDocument.Load("data/characters.xml");
-                AllCharacters.Clear();
-
-                List<XElement> list = SystemData.Descendants("Character").ToList();
-                foreach (XElement characterElm in list)
-                {
-                    string? name = (string?)characterElm.Attribute("Name");
-                    string? tag = (string?)characterElm.Attribute("Tag");
-                    string? color = (string?)characterElm.Attribute("Color");
-                    string? path = (string?)characterElm.Attribute("Path");
-                    string fileKey = (string?)characterElm.Attribute("FileKey") ?? string.Empty;
-                    _ = bool.TryParse((string?)characterElm.Attribute("IsSynced"), out bool isSynced);
-
-                    if (
-                        name != null &&
-                        tag != null
-                    )
-                    {
-                        Character character = new Character(name, tag, color ?? string.Empty, path ?? string.Empty)
-                        {
-                            EntityID = AllCharacters.Count,
-                            FileKey = fileKey,
-                            IsSynced = isSynced
-                        };
-
-                        AllCharacters.Add(character);
-                    }
-                }
-
-				RebuildLookups("characters");
-            }
-			catch (FileNotFoundException error)
+			if (name != null && tag != null)
 			{
-				DialogBox.Show($"Save Data Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
-			catch (XmlException error)
-			{
-				DialogBox.Show($"Characters File Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
-			catch (Exception error)
-			{
-				DialogBox.Show($"Something went wrong!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
-        }
+				Character character = new Character(name, tag, color, path)
+				{
+					EntityID = AllCharacters.Count,
+					FileKey = fileKey,
+					IsSynced = isSynced
+				};
 
-        public override void SaveData()
-        {
-            SystemData = new XDocument(
-                new XDeclaration("1.0", "utf-8", "yes"),
-                new XElement("Root",
-                    new XElement("Characters",
-                        AllCharacters.Select(c => new XElement("Character",
-                            new XAttribute("CharacterID", c.EntityID),
-                            new XAttribute("Name", c.Name),
-                            new XAttribute("Tag", c.Tag),
-                            !string.IsNullOrEmpty(c.FileKey) ? new XAttribute("FileKey", c.FileKey) : null,
-                            c.Color != null ? new XAttribute("Color", c.Color) : null,
-                            c.Directory != null ? new XAttribute("Path", c.Directory) : null,
-                            new XAttribute("IsSynced", c.IsSynced)
-                        ))
-                    )
-                )
-            );
+				AllCharacters.Add(character);
+			}
+		}
 
-            SystemData.Save("data/characters.xml");
-        }
+		protected override (AssetStore<Character>, List<XElement>)[] GetLoadData()
+			=> [(_characters, SystemData.Descendants("Character").ToList())];
+		#endregion
+
+		#region Data Saving Utilities
+		private XElement SaveElement(string type, AssetStore<Character> store)
+		{
+			return new XElement(store.TypeName,
+				store.Collection.Select(element => new XElement(type,
+					new XAttribute("EntityID", element.EntityID),
+					new XAttribute("Name", element.Name),
+					new XAttribute("Tag", element.Tag),
+					!string.IsNullOrEmpty(element.FileKey) ? new XAttribute("FileKey", element.FileKey) : null,
+					element.Color != null ? new XAttribute("Color", element.Color) : null,
+					element.Directory != null ? new XAttribute("Path", element.Directory) : null,
+					new XAttribute("IsSynced", element.IsSynced)
+					))
+				);
+		}
+
+		protected override XElement[] GetSaveData()
+			=> [SaveElement("Character", DataMode)];
+		#endregion
+
 		#endregion
 
 		private Character? FindCharacter(string tag) => AllCharacters.FirstOrDefault(c => c.Tag == tag);
@@ -548,7 +505,7 @@ namespace MonoBuilder.Models
                         {
                             character.FileKey = resolvedFileKey;
                             character.IsSynced = true;
-                            SaveData();
+                            SaveData(SaveString);
                         }
                     }
                     else
@@ -586,7 +543,7 @@ namespace MonoBuilder.Models
                             {
                                 character.FileKey = resolvedFileKey;
                                 character.IsSynced = true;
-                                SaveData();
+                                SaveData(SaveString);
                             }
                         }
                         else
@@ -756,7 +713,7 @@ namespace MonoBuilder.Models
 				foreach (var (filePath, notificationsInFile) in charactersByFile)
 					RemoveEntityFromSingleFile(filePath, notificationsInFile);
 
-				if (shouldSave) SaveData();
+				if (shouldSave) SaveData(SaveString);
 				return true;
 			}
 			catch (Exception ex)
@@ -963,7 +920,7 @@ namespace MonoBuilder.Models
                 {
                     character.FileKey = resolvedFileKey;
                     character.IsSynced = true;
-                    SaveData();
+                    SaveData(SaveString);
                 }
 
                 return true;

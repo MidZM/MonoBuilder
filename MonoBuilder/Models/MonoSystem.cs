@@ -4,6 +4,9 @@ using MonoBuilder.Models.generics.interfaces;
 using MonoBuilder.Models.helpers;
 using MonoBuilder.Views.ViewUtils;
 using System;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace MonoBuilder.Models
@@ -14,8 +17,9 @@ namespace MonoBuilder.Models
 		protected XDocument SystemData { get; set; } = new();
 		public virtual string DataModeTypeName => string.Empty;
 
-		public abstract void LoadData();
-		public abstract void SaveData();
+
+		public virtual void LoadData(string type) {}
+		public virtual void SaveData(string type) {}
 	}
 
 	public interface IDataModeController
@@ -24,7 +28,8 @@ namespace MonoBuilder.Models
 		IAssetStore? GetDataMode(string mode);
 	}
 
-	public abstract class MonoSystem<T> : MonoSystem, IDataModeController where T : INamedEntity, IMultiFile
+	public abstract class MonoSystem<T> : MonoSystem, IDataModeController
+		where T : INamedEntity, IMultiFile
 	{
 		public virtual AssetStore<T> DataMode { get; set; } = new()
 		{
@@ -34,6 +39,8 @@ namespace MonoBuilder.Models
 				string.Empty,
 				string.Empty)
 		};
+		protected abstract string SaveString { get; }
+		public string _SaveString => SaveString;
 
 		public override string DataModeTypeName => DataMode.TypeName;
 		protected Dictionary<string, AssetStore<T>> AllDataModes { get; set; } = new();
@@ -59,6 +66,57 @@ namespace MonoBuilder.Models
 		#endregion
 
 		#region Handle File Data
+
+		#region Data Loading Utilities
+		protected abstract void LoadElement(XElement element, ObservableCollection<T> collection, object? special = null);
+		protected abstract (AssetStore<T>, List<XElement>)[] GetLoadData();
+		protected virtual object? GetSpecialIdentifier() => null;
+		#endregion
+
+		#region Data Saving Utilities
+		protected abstract XElement[] GetSaveData();
+		#endregion
+
+		public override void LoadData(string type)
+		{
+			try
+			{
+				if (!Directory.Exists("data")) Directory.CreateDirectory("data");
+				if (!File.Exists($"data/{type}.xml"))
+				{
+					SaveData(type);
+					return;
+				}
+
+				SystemData = XDocument.Load($"data/{type}.xml");
+				List<(AssetStore<T>, List<XElement>)> descendentList = [..GetLoadData()];
+
+				foreach (var (store, list) in descendentList)
+				{
+					store.Collection.Clear();
+					foreach (var element in list)
+						LoadElement(element, store.Collection, GetSpecialIdentifier());
+
+					if (store.Collection.Any())
+						store.NextId = store.Collection.Max(element => element.EntityID) + 1;
+
+					RebuildLookups(store.TypeName.ToLower());
+				}
+			}
+			catch (FileNotFoundException error) { DialogBox.Show($"Save Data Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error); }
+			catch (XmlException error) { DialogBox.Show($"{DataMode.TypeName} File Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error); }
+			catch (Exception error) { DialogBox.Show($"Something went wrong!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error); }
+		}
+
+		public override void SaveData(string type)
+		{
+			SystemData = new XDocument(
+				new XDeclaration("1.0", "utf-8", "yes"),
+				new XElement("Root", GetSaveData()));
+
+			SystemData.Save($"data/{type}.xml");
+		}
+
 		public void LoadSettings(AppSettings settings)
 		{
 			ApplicationSettings = settings;
@@ -210,7 +268,7 @@ namespace MonoBuilder.Models
 			DataMode.ByName[entity.Name] = entity;
 			DataMode.ById[entity.EntityID] = entity;
 
-			if (shouldSave) SaveData();
+			if (shouldSave) SaveData(SaveString);
 		}
 
 		public bool RemoveData(int entityId, bool shouldSave = true)
@@ -223,7 +281,7 @@ namespace MonoBuilder.Models
 			DataMode.Collection.RemoveAt(DataMode.Collection.IndexOf(type));
 			RebuildLookups();
 
-			if (shouldSave) SaveData();
+			if (shouldSave) SaveData(SaveString);
 			return true;
 		}
 
@@ -244,7 +302,7 @@ namespace MonoBuilder.Models
 
 			DataMode.Collection.RemoveByIds(idsToRemove);
 
-			if (shouldSave) SaveData();
+			if (shouldSave) SaveData(SaveString);
 		}
 
 		public T UpdateData(int typeId, T newData, bool shouldSave = true)
@@ -261,7 +319,7 @@ namespace MonoBuilder.Models
 			DataMode.ById[existing.EntityID] = newData;
 			DataMode.Collection[DataMode.Collection.IndexOf(existing)] = newData;
 
-			if (shouldSave) SaveData();
+			if (shouldSave) SaveData(SaveString);
 
 			return existing;
 		}
