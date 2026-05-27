@@ -4,6 +4,7 @@ using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
 using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.image_management;
+using MonoBuilder.Models.media_management;
 using MonoBuilder.Models.notification_management;
 using MonoBuilder.Views;
 using MonoBuilder.Views.ViewUtils;
@@ -23,6 +24,7 @@ namespace MonoBuilder.ViewModels.MainModel
 		private readonly Characters CharacterData = new();
 		private readonly MonoImages ImageData = new();
 		private readonly Notifications NotificationData = new();
+		private readonly MediaHandler MediaData = new();
 		private readonly AppSettings ApplicationSettings = new();
 		private readonly FileSystemWatcher MainWatcher = new();
 		private readonly ActionHelper ActionUtility = new();
@@ -53,6 +55,7 @@ namespace MonoBuilder.ViewModels.MainModel
 			CharacterData.LoadSettings(ApplicationSettings);
 			ImageData.LoadSettings(ApplicationSettings);
 			NotificationData.LoadSettings(ApplicationSettings);
+			MediaData.LoadSettings(ApplicationSettings);
 
 			ActionUtility.LoadActions();
 
@@ -85,7 +88,7 @@ namespace MonoBuilder.ViewModels.MainModel
 				new("Image Builder",        true, () => new ImageBuilder(ApplicationSettings, ImageData, "Images")),
 				new("Scene Builder",        true, () => new ImageBuilder(ApplicationSettings, ImageData, "Scenes")),
 				new("Gallery Builder",      true, () => new ImageBuilder(ApplicationSettings, ImageData, "Gallery")),
-				new("Media Builder",        false),
+				new("Media Builder",        true, () => new MediaBuilder(ApplicationSettings, MediaData, "Music")),
 				new("Particle Builder",     false),
 				new("Message Builder",      true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Messages")),
 				new("Notification Builder", true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Notifications"))
@@ -114,6 +117,7 @@ namespace MonoBuilder.ViewModels.MainModel
 				ApplicationSettings,
 				Converter,
 				CharacterData,
+				MediaData,
 				ImageData,
 				NotificationData);
 			FileWatcher.SetCurrentContext(Owner);
@@ -131,6 +135,11 @@ namespace MonoBuilder.ViewModels.MainModel
 			if (NotificationData.CheckSynchronicity(true))
 			{
 				FileWatcher.ForciblyUpdateNotificationsList(false);
+			}
+
+			if (MediaData.CheckSynchronicity(true))
+			{
+				FileWatcher.ForciblyUpdateMediaList(false);
 			}
 		}
 

@@ -60,6 +60,10 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			"Images",
 			"Scenes",
 			"Gallery",
+			"Music",
+			"Sounds",
+			"Voices",
+			"Videos",
 			"Messages",
 			"Notifications"
 		};
@@ -69,7 +73,11 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			"Assets",
 			"Images",
 			"Scenes",
-			"Gallery"
+			"Gallery",
+			"Music",
+			"Sounds",
+			"Voices",
+			"Videos"
 		};
 
 		public TabEntries MixedEntries { get; set; } = new();

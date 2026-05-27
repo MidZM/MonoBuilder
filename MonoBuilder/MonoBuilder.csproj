@@ -39,6 +39,7 @@
 
     <ItemGroup>
         <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+        <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
         <PackageReference Include="PixiEditor.ColorPicker" Version="3.4.2.3" />
     </ItemGroup>
 
@@ -48,6 +49,10 @@
         <Resource Include="Assets\Zone Master Productions Logo.png" />
         <Resource Include="Assets\Door.png" />
         <Resource Include="Assets\fallback.jpg" />
+        <Resource Include="Assets\Play.png" />
+        <Resource Include="Assets\Pause.png" />
+        <Resource Include="Assets\Stop.png" />
+        <Resource Include="Assets\AudioDefault.png" />
         <Resource Include="favicon.ico" />
     </ItemGroup>
 

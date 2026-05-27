@@ -1,16 +1,7 @@
 ﻿using MonoBuilder.Models;
-using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.image_management;
-using MonoBuilder.Models.generics.enums;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using MonoBuilder.ViewModels.ImageModel;
 
 namespace MonoBuilder.Views.ViewUtils

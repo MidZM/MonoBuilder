@@ -11,6 +11,8 @@ using System.Windows.Controls;
 using MonoBuilder.Models.notification_management;
 using MonoBuilder.ViewModels.NotifierModel;
 using MonoBuilder.ViewModels.ImageModel;
+using MonoBuilder.Models.media_management;
+using MonoBuilder.ViewModels.MediaModel;
 
 namespace MonoBuilder.Models
 {
@@ -26,6 +28,7 @@ namespace MonoBuilder.Models
         private static ScriptConversion? ScriptConverter { get; set; }
         private static Characters? CharacterData { get; set; }
         private static MonoImages? ImageData { get; set; }
+        private static MediaHandler? MediaData { get; set; }
         private static Notifications? NotificationData { get; set; }
 
         private static bool DialogIsOpen { get; set; } = false;
@@ -36,13 +39,18 @@ namespace MonoBuilder.Models
         private static System.Timers.Timer? _suppressionTimer { get; set; }
 
         private static readonly string[] TrackedFileTypes =
-            ["Characters", "Images", "Scenes", "Gallery", "Messages", "Notifications", "Script"];
+            ["Characters",
+			"Images", "Scenes", "Gallery",
+			"Music", "Sounds", "Voices", "Videos",
+			"Messages", "Notifications",
+			"Script"];
 
         public static void InitializeWatcher(
             FileSystemWatcher watcher,
             AppSettings settings,
             ScriptConversion converter,
             Characters characters,
+            MediaHandler media,
             MonoImages images,
 			Notifications notifications)
         {
@@ -55,6 +63,7 @@ namespace MonoBuilder.Models
                 ScriptConverter = converter;
                 CharacterData = characters;
                 ImageData = images;
+				MediaData = media;
 				NotificationData = notifications;
 
                 watcher.Path = masterPath;
@@ -124,6 +133,11 @@ namespace MonoBuilder.Models
             {
                 ShowChangedMadeImages();
             }
+
+			if (changed["Music"] || changed["Sounds"] || changed["Voices"] || changed["Videos"])
+			{
+				ShowChangedMadeMedia();
+			}
 
 			if (changed["Messages"] || changed["Notifications"])
 			{
@@ -321,13 +335,36 @@ namespace MonoBuilder.Models
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                if (CurrentContext is ImageBuilder imageBuilder && (AnyFileChanged("Images") || AnyFileChanged("Scenes") || AnyFileChanged("Gallery")))
+                if (CurrentContext is ImageBuilder imageBuilder &&
+				(AnyFileChanged("Images") ||
+				AnyFileChanged("Scenes") ||
+				AnyFileChanged("Gallery")))
                 {
                     var changedLabel = Helpers.FindVisualChild<Label>(CurrentContext, "ChangesMadeLabel");
                     if (changedLabel != null)
                     {
                         changedLabel.Visibility = Visibility.Visible;
                         ForciblyUpdateImagesList();
+                    }
+                }
+            });
+        }
+
+        private static void ShowChangedMadeMedia()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (CurrentContext is ImageBuilder imageBuilder &&
+				(AnyFileChanged("Music") ||
+				AnyFileChanged("Sounds") ||
+				AnyFileChanged("Voices") ||
+				AnyFileChanged("Videos")))
+                {
+                    var changedLabel = Helpers.FindVisualChild<Label>(CurrentContext, "ChangesMadeLabel");
+                    if (changedLabel != null)
+                    {
+                        changedLabel.Visibility = Visibility.Visible;
+                        ForciblyUpdateMediaList();
                     }
                 }
             });
@@ -556,7 +593,7 @@ namespace MonoBuilder.Models
 
 					ImageData.SetDataMode(originalDataMode);
 
-					var context = CurrentContext!.DataContext as ImageViewModel;
+					var context = CurrentContext?.DataContext as ImageViewModel;
 					if (context != null)
 					{
 						context.ClearSelectedEntities();
@@ -578,6 +615,100 @@ namespace MonoBuilder.Models
                 {
                     DialogBox.Show(
                         $"An error occurred while updating image assets!\n\n{error}",
+                        "Error",
+                        DialogButtonDefaults.OK,
+                        DialogIcon.Error);
+                }
+            }
+        }
+
+        public static void ForciblyUpdateMediaList(bool shouldShowMessages = true)
+        {
+            if (MediaData != null)
+            {
+                if (shouldShowMessages)
+                {
+                    DialogBox.Show(
+                    "Changes to a music, sound, voice or video file were made!\nTo preserve synchronicity, existing assets will be forcibly updated.",
+                    "Changes Made",
+                    DialogButtonDefaults.OK,
+                    DialogIcon.Warning);
+                }
+
+                _isBeingWritten = true;
+
+                try
+                {
+					string originalDataMode = MediaData.DataModeTypeName.ToLower();
+                    string[] modes = ["music", "sounds", "voices", "videos"];
+                    foreach (string mode in modes)
+                    {
+						MediaData.SetDataMode(mode);
+                        var mediaData = MediaData.SyncData(true);
+						var existenceCheck = MediaData.EntitiesExistInScript(MediaData.DataMode.Collection
+							.Select(m => m.Name)
+							.ToHashSet());
+						var unsyncedMedia = MediaData.DataMode.Collection
+							.Where(m => existenceCheck.TryGetValue(m.Name, out bool value) && !value)
+							.ToList();
+
+                        if (mediaData.Values.Count > 0)
+                        {
+                            foreach (var media in mediaData.Values)
+                            {
+								int mediaId = MediaData.DataMode.Collection
+									.First(m => m.Name == media.Name)
+									.EntityID;
+
+                                string name = media.Name;
+                                string path = media.Path;
+                                string fileKey = media.FileKey;
+
+                                Media newMedia = new(name, path)
+                                {
+                                    EntityID = mediaId,
+                                    FileKey = fileKey,
+                                    IsSynced = true
+                                };
+
+								MediaData.UpdateData(mediaId, newMedia);
+                            }
+                        }
+
+                        foreach (var media in unsyncedMedia)
+                        {
+                            if (media.IsSynced)
+                            {
+                                media.IsSynced = false;
+								MediaData.UpdateData(media.EntityID, media);
+                            }
+                        }
+					}
+
+					MediaData.SetDataMode(originalDataMode);
+
+					var context = CurrentContext?.DataContext as MediaViewModel;
+					if (context != null)
+					{
+						context.ClearSelectedEntities();
+					}
+
+					if (shouldShowMessages)
+                    {
+                        DialogBox.Show(
+                        "Sucessfully updated media assets!",
+                        "Success",
+                        DialogButtonDefaults.OK,
+                        DialogIcon.Information);
+                    }
+
+                    _suppressionTimer?.Stop();
+                    _suppressionTimer?.Start();
+                }
+                catch (Exception error)
+                {
+                    DialogBox.Show(
+                        $"An error occurred while updating media assets!\n\n{error}",
                         "Error",
                         DialogButtonDefaults.OK,
                         DialogIcon.Error);

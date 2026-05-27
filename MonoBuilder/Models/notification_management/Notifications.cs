@@ -166,7 +166,6 @@ namespace MonoBuilder.Models.notification_management
 				string currentId = string.Empty;
 				var parsedAttributes = new Dictionary<string, string>();
 
-				// === CHANGED TO for LOOP FOR MULTI-LINE SUPPORT ===
 				for (int i = start + 1; i < end; i++)
 				{
 					string rawData = content[i];
@@ -226,7 +225,6 @@ namespace MonoBuilder.Models.notification_management
 							continue;
 						}
 
-						// === MULTI-LINE ATTRIBUTE PARSING ===
 						string attrLine = line.EndsWith(',') ? line[..^1] : line;
 						var attrRes = AttributeRegex.Match(attrLine);
 
@@ -239,27 +237,25 @@ namespace MonoBuilder.Models.notification_management
 
 							if (valuePart.StartsWith('`'))
 							{
-								// === MULTI-LINE BACKTICK VALUE ===
-								var sb = new StringBuilder(valuePart[1..]); // remove opening `
+								var sb = new StringBuilder(valuePart[1..]);
 
-								i++; // move to next line
+								i++;
 								bool foundClosing = false;
 
 								while (i < end && !foundClosing)
 								{
 									string nextRaw = content[i];
-									string nextLine = nextRaw.Trim(); // preserve internal whitespace/newlines
+									string nextLine = nextRaw.Trim();
 
 									int closePos = nextLine.IndexOf('`');
 									if (closePos >= 0)
 									{
 										sb.Append(nextLine.Substring(0, closePos));
 										foundClosing = true;
-										// Do NOT increment i here — the outer loop will handle the next iteration
 									}
 									else
 									{
-										sb.AppendLine(nextLine); // preserves original formatting
+										sb.AppendLine(nextLine);
 									}
 
 									if (!foundClosing)

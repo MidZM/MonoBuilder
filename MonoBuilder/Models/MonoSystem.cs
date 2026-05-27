@@ -454,7 +454,7 @@ namespace MonoBuilder.Models
 		#region Script Manipulation
 		public abstract void AddEntityToScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null);
 		public abstract bool RemoveEntityFromScript(int entityId, bool shouldSave = true);
-		public abstract bool RemoveEntitiesFromScript(int[] entitiyIds, bool shouldSave = true);
+		public abstract bool RemoveEntitiesFromScript(int[] entityIds, bool shouldSave = true);
 		protected abstract void RemoveEntityFromSingleFile(string filePath, List<T> entityToRemove);
 		public abstract bool UpdateEntityInScript(string name, Dictionary<string, string?> content, string? fileKeyParam = null);
 		#endregion

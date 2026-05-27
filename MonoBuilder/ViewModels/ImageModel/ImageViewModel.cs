@@ -10,7 +10,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 {
     public partial class ImageViewModel : TabbedContentModel<MonoImages, MonoImage>
     {
-		#region SystemManagement Properties
+		#region System Management Properties
 		public override required MonoImages DataController { get; init; }
 		#endregion
 
@@ -95,7 +95,7 @@ namespace MonoBuilder.ViewModels.ImageModel
 			{
 				if (e.PropertyName == nameof(SelectedEntity))
 				{
-					string? imagesPath = ApplicationSettings.GetFolderPath(Mode);
+					string? imagesPath = ApplicationSettings?.GetFolderPath(Mode);
 
 					if (SelectedEntity == null || string.IsNullOrWhiteSpace(imagesPath))
 					{

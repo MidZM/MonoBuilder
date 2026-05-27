@@ -1,15 +1,10 @@
-﻿using MonoBuilder.Commands;
-using MonoBuilder.Models;
-using MonoBuilder.Models.character_management;
-using MonoBuilder.Models.generics.enums;
+﻿using MonoBuilder.Models.generics.enums;
 using MonoBuilder.Models.image_management;
 using MonoBuilder.Views.ViewUtils;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using static System.Resources.ResXFileRef;
 
 namespace MonoBuilder.ViewModels.ImageModel
 {
@@ -18,7 +13,6 @@ namespace MonoBuilder.ViewModels.ImageModel
 		#region Utility Commands
 		protected override string GetContentUniqueField()
 			=> "Name";
-
 		protected override List<string> GetContentNames()
 			=> ["Name", "Path", "File"];
 		protected override List<ContentBoxType> GetContentBoxTypes()

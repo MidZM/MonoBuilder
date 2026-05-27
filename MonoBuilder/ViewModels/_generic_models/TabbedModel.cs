@@ -17,13 +17,12 @@ namespace MonoBuilder.ViewModels._generic_models
 		public required Window Owner { get; set; }
 		public required AppSettings ApplicationSettings { get; set; }
 
-		public CollectionViewSource? DataViewSource { get; set; }
-
 		private TabEntries _dataTabs = new();
 		private ObservableCollection<string> _availableFiles = new();
 		private TabEntry? _selectedTab;
 		private T? _selectedEntity;
 		private ObservableCollection<T> _selectedEntities = new();
+		private CollectionViewSource? _dataViewSource;
 
 		public TabEntries DataTabs
 		{
@@ -76,10 +75,12 @@ namespace MonoBuilder.ViewModels._generic_models
 		public ObservableCollection<T> SelectedEntities
 		{
 			get => _selectedEntities;
-			set
-			{
-				SetProperty(ref _selectedEntities, value);
-			}
+			set => SetProperty(ref _selectedEntities, value);
+		}
+		public CollectionViewSource? DataViewSource
+		{
+			get => _dataViewSource;
+			set => SetProperty(ref _dataViewSource, value);
 		}
 
 		#region Initialization Methods

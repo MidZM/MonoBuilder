@@ -107,6 +107,7 @@ namespace MonoBuilder.Models
         {
             var characters = new Dictionary<string, Character>();
             var files = GetDataFiles();
+
             if (files.Count == 0)
             {
                 DialogBox.Show(
@@ -117,15 +118,14 @@ namespace MonoBuilder.Models
                 throw new Exception("Bad file data...\nNo character files are configured.");
             }
 
-            foreach (var (fileKey, filePath) in files.OrderBy(entry => entry.Key))
+			var guide = DataMode.MasterGuideContent;
+			foreach (var (fileKey, filePath) in files.OrderBy(entry => entry.Key))
             {
-				var guide = DataMode.MasterGuideContent;
                 string[] content = File.ReadAllLines(filePath);
                 int start = Array.FindIndex(content, line => line.Trim() == guide.GuideStart);
                 int end = Array.FindIndex(content, start + 1, line => line.Trim() == guide.GuideEnd);
 
-                if (start <= -1 || end <= -1)
-                    continue;
+                if (start <= -1 || end <= -1) continue;
 
                 string[] innerContent = content[(start + 1)..end];
                 string tag = string.Empty;

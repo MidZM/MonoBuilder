@@ -107,7 +107,7 @@ namespace MonoBuilder.Models.image_management
 
         #endregion
 
-        #region Sync images to the program
+        #region Sync Images to the Program
         public override Dictionary<string, MonoImage> SyncData(bool duplicatesOnly = false)
         {
             var images = new Dictionary<string, MonoImage>(StringComparer.Ordinal);
@@ -284,7 +284,7 @@ namespace MonoBuilder.Models.image_management
 			if (start == -1 || end == -1)
 				return results;
 
-			var remaining = new HashSet<string>(names);   // Still useful for early exit
+			var remaining = new HashSet<string>(names);
 
 			string[] innerContent = fileContent[(start + 1)..end];
 
@@ -299,12 +299,11 @@ namespace MonoBuilder.Models.image_management
 					continue;
 
 				string imageName = match.Groups["name"].Value;
-				if (!remaining.Remove(imageName))   // Remove returns true only if it existed
+				if (!remaining.Remove(imageName))
 					continue;
 
 				string filePathValue = match.Groups["content"].Value;
 
-				// Fast dictionary lookup instead of FirstOrDefault
 				if (CheckData(imageName) is MonoImage image)
 				{
 					results[imageName] = image.Path == filePathValue;
@@ -399,12 +398,12 @@ namespace MonoBuilder.Models.image_management
 
         public override bool RemoveEntityFromScript(int imageId, bool shouldSave = true)
         {
-            return RemoveEntitiesFromScript(new[] { imageId }, shouldSave);
+            return RemoveEntitiesFromScript([imageId], shouldSave);
         }
 
         public override bool RemoveEntitiesFromScript(int[] imageIds, bool shouldSave = true)
         {
-            if (imageIds == null || imageIds.Length == 0)
+            if (imageIds.Length == 0)
                 return false;
 
             var idsToRemove = new HashSet<int>(imageIds);
