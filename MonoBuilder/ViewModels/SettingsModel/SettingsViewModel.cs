@@ -210,7 +210,6 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			{
 				characterTab.Files.CollectionChanged += (s, e) =>
 				{
-					Views.ViewUtils.DialogBox.Show(AvailableFiles.Count.ToString());
 					if (e.NewItems != null)
 					{
 						foreach (FileEntry newFile in e.NewItems.OfType<FileEntry>())
