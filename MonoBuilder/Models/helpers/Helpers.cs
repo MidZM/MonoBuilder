@@ -270,25 +270,13 @@ namespace MonoBuilder.Models.helpers
         public bool Value
         {
             get => _value;
-			set
-			{
-				if (SetProperty(ref _value, value))
-				{
-					OnPropertyChanged(nameof(Inverse));
-				}
-			}
+			set { if (SetProperty(ref _value, value)) OnPropertyChanged(nameof(Inverse)); }
         }
 
 		public bool Inverse
 		{
 			get => !_value;
-			set
-			{
-				if (SetProperty(ref _value, !value))
-				{
-					OnPropertyChanged(nameof(Value));
-				}
-			}
+			set { if (SetProperty(ref _value, !value)) OnPropertyChanged(nameof(Value)); }
 		}
     }
 
@@ -344,7 +332,7 @@ namespace MonoBuilder.Models.helpers
 
 	public class ImageSourceToImageBrushConverter : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			if (value is ImageSource imageSource && imageSource != null)
 			{

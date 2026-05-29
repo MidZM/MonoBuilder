@@ -1,9 +1,11 @@
 ﻿using Microsoft.Win32;
-using MonoBuilder.Views.ViewUtils;
 using MonoBuilder.Models;
 using MonoBuilder.Models.character_management;
-using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.generics.enums;
+using MonoBuilder.Models.generics.interfaces;
+using MonoBuilder.Models.helpers;
+using MonoBuilder.ViewModels.SettingsModel;
+using MonoBuilder.Views.ViewUtils;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -13,7 +15,6 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using MonoBuilder.ViewModels.SettingsModel;
 
 namespace MonoBuilder.Views
 {
@@ -26,7 +27,7 @@ namespace MonoBuilder.Views
         {
 			SettingsViewModel settingsViewModel = new()
 			{
-				CharacterData = characters,
+				DataController = characters,
 				ApplicationSettings = settings,
 				Converter = converter,
 				Owner = this
@@ -80,7 +81,7 @@ namespace MonoBuilder.Views
                 {
                     if (ContextMoveCharacter.ItemContainerGenerator.ContainerFromItem(item) is MenuItem container)
                     {
-                        var match = SettingsViewModel.GetFileKey.Match(item?.ToString() ?? "");
+                        var match = IBuilderTabbedModel<Character>.GetFileKey.Match(item?.ToString() ?? "");
                         container.Icon = match.Success && commonFileKey != null && match.Groups[1].Value == commonFileKey
                             ? new TextBlock {
                                 Text = "•",

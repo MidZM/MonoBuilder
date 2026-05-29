@@ -35,7 +35,7 @@
             x:Name="EditingContent"
             Grid.Row="0"
             Grid.Column="0"
-            IsEnabled="{Binding IsEditingNotifier.Inverse}">
+            IsEnabled="{Binding IsEditingData.Inverse}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="100" />
@@ -83,7 +83,7 @@
                     SelectionChanged="NotificationsDataGrid_SelectionChanged"
                     Tag="{Binding DataContext.AvailableFiles, RelativeSource={RelativeSource AncestorType=Window}}">
                     <DataGrid.InputBindings>
-                        <MouseBinding Command="{Binding ModifyNotifiersCommand}" Gesture="LeftDoubleClick" />
+                        <MouseBinding Command="{Binding ModifyDataCommand}" Gesture="LeftDoubleClick" />
                     </DataGrid.InputBindings>
 
                     <DataGrid.ContextMenu>
@@ -96,7 +96,7 @@
                                 SubmenuOpened="ContextMoveNotification_SubmenuOpened">
                                 <MenuItem.ItemContainerStyle>
                                     <Style TargetType="MenuItem">
-                                        <Setter Property="Command" Value="{Binding DataContext.MoveNotifierCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <Setter Property="Command" Value="{Binding DataContext.MoveDataCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                         <Setter Property="CommandParameter" Value="{Binding RelativeSource={RelativeSource Self}}" />
                                     </Style>
                                 </MenuItem.ItemContainerStyle>
@@ -104,15 +104,15 @@
                             <Separator />
                             <MenuItem
                                 x:Name="ContextAddNotification"
-                                Command="{Binding AddNotifiersCommand}"
+                                Command="{Binding AddDataCommand}"
                                 Header="Add Notification" />
                             <MenuItem
                                 x:Name="ContextModifyNotification"
-                                Command="{Binding ModifyNotifiersCommand}"
+                                Command="{Binding ModifyDataCommand}"
                                 Header="Modify Notification" />
                             <MenuItem
                                 x:Name="ContextRemoveNotification"
-                                Command="{Binding RemoveNotifiersCommand}"
+                                Command="{Binding RemoveDataCommand}"
                                 Header="Remove Notification" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
@@ -156,7 +156,7 @@
                     Grid.Row="0"
                     Grid.Column="0"
                     Padding="5"
-                    Command="{Binding AddNotifiersCommand}"
+                    Command="{Binding AddDataCommand}"
                     Content="Add Notifier"
                     Style="{StaticResource DefaultButton}" />
                 <Button
@@ -164,7 +164,7 @@
                     Grid.Row="0"
                     Grid.Column="1"
                     Padding="5"
-                    Command="{Binding ModifyNotifiersCommand}"
+                    Command="{Binding ModifyDataCommand}"
                     Content="Update Notifier"
                     Style="{StaticResource DefaultButton}" />
                 <Button
@@ -172,7 +172,7 @@
                     Grid.Row="0"
                     Grid.Column="2"
                     Padding="5"
-                    Command="{Binding RemoveNotifiersCommand}"
+                    Command="{Binding RemoveDataCommand}"
                     Content="Remove Notifier"
                     Style="{StaticResource ErrorButton}" />
                 <Grid Grid.Row="1" Grid.ColumnSpan="3">
@@ -191,7 +191,7 @@
                         x:Name="BtnImportNotifiers"
                         Grid.Column="1"
                         Padding="5"
-                        Command="{Binding ImportNotifiersCommand}"
+                        Command="{Binding ImportDataCommand}"
                         Content="Import Notifiers"
                         Style="{StaticResource DefaultButton}" />
                 </Grid>
@@ -201,7 +201,7 @@
             x:Name="NotifierDataContainer"
             Grid.Column="1"
             Margin="5"
-            Visibility="{Binding IsEditingNotifier.Inverse, Converter={StaticResource BoolToVis}}">
+            Visibility="{Binding IsEditingData.Inverse, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="70" />
                 <ColumnDefinition Width="*" />
@@ -247,7 +247,7 @@
             x:Name="NotifierManipultorContainer"
             Grid.Column="1"
             Margin="5"
-            Visibility="{Binding IsEditingNotifier.Value, Converter={StaticResource BoolToVis}}">
+            Visibility="{Binding IsEditingData.Value, Converter={StaticResource BoolToVis}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*" />
                 <RowDefinition Height="1*" />

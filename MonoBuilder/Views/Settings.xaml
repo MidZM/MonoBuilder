@@ -212,7 +212,7 @@
                             SelectionChanged="CharactersDataGrid_SelectionChanged"
                             Tag="{Binding DataContext.AvailableFiles, RelativeSource={RelativeSource AncestorType=Window}}">
                             <DataGrid.InputBindings>
-                                <MouseBinding Command="{Binding ModifyCharactersCommand}" Gesture="LeftDoubleClick" />
+                                <MouseBinding Command="{Binding ModifyDataCommand}" Gesture="LeftDoubleClick" />
                             </DataGrid.InputBindings>
 
                             <DataGrid.ContextMenu>
@@ -224,7 +224,7 @@
                                         SubmenuOpened="ContextMoveCharacter_SubmenuOpened">
                                         <MenuItem.ItemContainerStyle>
                                             <Style TargetType="MenuItem">
-                                                <Setter Property="Command" Value="{Binding DataContext.MoveCharacterCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                <Setter Property="Command" Value="{Binding DataContext.MoveDataCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                                 <Setter Property="CommandParameter" Value="{Binding RelativeSource={RelativeSource Self}}" />
                                             </Style>
                                         </MenuItem.ItemContainerStyle>
@@ -232,15 +232,15 @@
                                     <Separator />
                                     <MenuItem
                                         x:Name="ContextAddCharacter"
-                                        Command="{Binding AddCharactersCommand}"
+                                        Command="{Binding AddDataCommand}"
                                         Header="Add Character" />
                                     <MenuItem
                                         x:Name="ContextModifyCharacter"
-                                        Command="{Binding ModifyCharactersCommand}"
+                                        Command="{Binding ModifyDataCommand}"
                                         Header="Modify Character" />
                                     <MenuItem
                                         x:Name="ContextRemoveCharacter"
-                                        Command="{Binding RemoveCharactersCommand}"
+                                        Command="{Binding RemoveDataCommand}"
                                         Header="Remove Character" />
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
@@ -346,23 +346,23 @@
                                 x:Name="BtnAddCharacter"
                                 Grid.Row="0"
                                 Grid.Column="0"
-                                Command="{Binding AddCharactersCommand}"
+                                Command="{Binding AddDataCommand}"
                                 Content="Add Character"
                                 Style="{StaticResource DefaultButton}" />
                             <Button
                                 x:Name="BtnModifyCharacter"
                                 Grid.Row="0"
                                 Grid.Column="1"
-                                Command="{Binding ModifyCharactersCommand}"
+                                Command="{Binding ModifyDataCommand}"
                                 Content="Modify Character"
                                 Style="{StaticResource DefaultButton}" />
                             <Button
                                 x:Name="BtnRemoveCharacter"
                                 Grid.Row="0"
                                 Grid.Column="2"
-                                Command="{Binding RemoveCharactersCommand}"
+                                Command="{Binding RemoveDataCommand}"
                                 Content="Remove Character"
-                                Style="{StaticResource DefaultButton}" />
+                                Style="{StaticResource ErrorButton}" />
                             <Grid
                                 Grid.Row="1"
                                 Grid.Column="0"
@@ -381,7 +381,7 @@
                                     x:Name="BtnImportCharacters"
                                     Grid.Row="1"
                                     Grid.Column="1"
-                                    Command="{Binding ImportCharactersCommand}"
+                                    Command="{Binding ImportDataCommand}"
                                     Content="Import Characters"
                                     Style="{StaticResource DefaultButton}" />
                             </Grid>

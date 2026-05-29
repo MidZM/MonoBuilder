@@ -1,16 +1,7 @@
 ﻿using MonoBuilder.Models;
-using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.image_management;
-using MonoBuilder.Models.generics.enums;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using MonoBuilder.ViewModels.ImageModel;
 
 namespace MonoBuilder.Views.ViewUtils
@@ -20,7 +11,6 @@ namespace MonoBuilder.Views.ViewUtils
     /// </summary>
     public partial class ImageBuilder : Window
     {
-        private double TotalWindowWidth = 0;
         private string Mode { get; set; } = "Images";
 
         public ImageBuilder(AppSettings settings, MonoImages imageData, string mode)
@@ -28,7 +18,7 @@ namespace MonoBuilder.Views.ViewUtils
 			ImageViewModel imageViewModel = new()
 			{
 				Owner = this,
-				ImageData = imageData,
+				DataController = imageData,
 				ApplicationSettings = settings
 			};
 			DataContext = imageViewModel;

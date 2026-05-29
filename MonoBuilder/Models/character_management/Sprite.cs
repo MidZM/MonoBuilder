@@ -19,49 +19,25 @@ namespace MonoBuilder.Models.character_management
         public int EntityID
         {
             get => _id;
-            set
-            {
-                if (SetProperty(ref _id, value))
-                {
-                    OnPropertyChanged(nameof(EntityID));
-                }
-            }
+            set => SetProperty(ref _id, value);
         }
 
         public string Name
         {
             get => _name;
-            set
-            {
-                if (SetProperty(ref _name, value))
-                {
-                    OnPropertyChanged(nameof(Name));
-                }
-            }
+            set => SetProperty(ref _name, value);
         }
 
         public string ImageLayer
         {
             get => _image;
-            set
-            {
-                if (SetProperty(ref _image, value))
-                {
-                    OnPropertyChanged(nameof(ImageLayer));
-                }
-            }
+            set => SetProperty(ref _image, value);
         }
 
         public ObservableCollection<Layer> Layers
         {
             get => _layers;
-            set
-            {
-                if (SetProperty(ref _layers, value))
-                {
-                    OnPropertyChanged(nameof(Layers));
-                }
-            }
+            set => SetProperty(ref _layers, value);
         }
 
         public Sprite(string name, string imageLayer, IEnumerable<Layer>? layers = null)

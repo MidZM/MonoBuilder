@@ -6,6 +6,6 @@ namespace MonoBuilder.Models.generics.interfaces
     public interface IBuilderBaseModel
     {
 		public Window Owner { get; set; }
-		protected AppSettings ApplicationSettings { get; set; }
+		internal AppSettings ApplicationSettings { get; set; }
     }
 }

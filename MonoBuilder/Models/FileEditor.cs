@@ -123,7 +123,7 @@ namespace MonoBuilder.Models
         {
             var list = new BindingList<LabelGridRow>();
             foreach (LoadedLabel l in UnsyncedLabels.Items)
-                list.Add(new LabelGridRow($"{l.FileKey}:{l.Name}", l.WordCount, l.Synced, l.InScript));
+                list.Add(new LabelGridRow($"{l.FileKey}:{l.Name}", l.WordCount, l.Synced, l.IsSynced));
             return list;
         }
 
@@ -135,7 +135,7 @@ namespace MonoBuilder.Models
         {
             var list = new BindingList<LabelGridRow>();
             foreach (LoadedLabel l in SyncedLabels.Items)
-                list.Add(new LabelGridRow($"{l.FileKey}:{l.Name}", l.WordCount, l.Synced, l.InScript));
+                list.Add(new LabelGridRow($"{l.FileKey}:{l.Name}", l.WordCount, l.Synced, l.IsSynced));
             return list;
         }
 
@@ -676,11 +676,11 @@ namespace MonoBuilder.Models
                     {
                         existingLabels.TryGetValue(label, out bool inScript);
                         existingScripts.TryGetValue(label, out bool synced);
-                        var originalValue = content.InScript;
+                        var originalValue = content.IsSynced;
 
-                        content.InScript = inScript && synced;
+                        content.IsSynced = inScript && synced;
 
-                        if (originalValue != content.InScript)
+                        if (originalValue != content.IsSynced)
                             labelsHaveChanged = true;
                     }
                 }
@@ -741,7 +741,7 @@ namespace MonoBuilder.Models
                         SyncedLabels.TryGetValue(fileKey, label, out var labelExists);
                         if (labelExists != null)
                         {
-                            labelExists.InScript = true;
+                            labelExists.IsSynced = true;
                             SaveProgram();
                         }
                         else
@@ -765,7 +765,7 @@ namespace MonoBuilder.Models
                             SyncedLabels.TryGetValue(fileKey, label, out var labelExists2);
                             if (labelExists2 != null)
                             {
-                                labelExists2.InScript = true;
+                                labelExists2.IsSynced = true;
                                 SaveProgram();
                             }
                             else
@@ -1157,7 +1157,7 @@ namespace MonoBuilder.Models
                     new XAttribute("Name", entry.Name),
                     new XAttribute("WordCount", entry.WordCount),
                     new XAttribute("Synced", entry.Synced),
-                    new XAttribute("InScript", entry.InScript),
+                    new XAttribute("InScript", entry.IsSynced),
                     new XCData(entry.Content?.ToString() ?? "")))
                 .ToArray();
 
@@ -1181,7 +1181,7 @@ namespace MonoBuilder.Models
         private StringBuilder? _content;
         private int _wordCount;
         private bool _synced;
-        private bool _inScript;
+        private bool _isSynced;
 
         /// <summary>Gets or sets the file key the label belongs to.</summary>
         [DisplayName("File")]
@@ -1220,10 +1220,10 @@ namespace MonoBuilder.Models
         }
 
         /// <summary>Gets or sets a value indicating whether the context is within a script block.</summary>
-        public bool InScript
+        public bool IsSynced
         {
-            get => _inScript;
-            set => SetField(ref _inScript, value);
+            get => _isSynced;
+            set => SetField(ref _isSynced, value);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -1244,7 +1244,7 @@ namespace MonoBuilder.Models
             _content = content;
             _wordCount = words;
             _synced = synced;
-            _inScript = inScript;
+            _isSynced = inScript;
             _fileKey = fileKey;
         }
 

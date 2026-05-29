@@ -58,37 +58,19 @@ namespace MonoBuilder.ViewModels
 		public string Name
 		{
 			get => _name;
-			set
-			{
-				if (SetProperty(ref _name, value))
-				{
-					OnPropertyChanged(nameof(Name));
-				}
-			}
+			set => SetProperty(ref _name, value);
 		}
 
 		public string? Type
 		{
 			get => _type;
-			set
-			{
-				if (SetProperty(ref _type, value))
-				{
-					OnPropertyChanged(nameof(Type));
-				}
-			}
+			set => SetProperty(ref _type, value);
 		}
 
 		public string? Tag
 		{
 			get => _tag;
-			set
-			{
-				if (SetProperty(ref _tag, value))
-				{
-					OnPropertyChanged(nameof(Tag));
-				}
-			}
+			set => SetProperty(ref _tag, value);
 		}
 
 		public TabEntry(string name)
@@ -238,13 +220,7 @@ namespace MonoBuilder.ViewModels
 		public string Name
 		{
 			get => _name;
-			set
-			{
-				if (SetProperty(ref _name, value))
-				{
-					OnPropertyChanged(nameof(Name));
-				}
-			}
+			set => SetProperty(ref _name, value);
 		}
 
 		public string Path
@@ -254,7 +230,6 @@ namespace MonoBuilder.ViewModels
 			{
 				if (SetProperty(ref _path, value))
 				{
-					OnPropertyChanged(nameof(Path));
 					TruncatePath(_path, _basePath);
 				}
 			}
@@ -267,7 +242,6 @@ namespace MonoBuilder.ViewModels
 			{
 				if (SetProperty(ref _basePath, value))
 				{
-					OnPropertyChanged(nameof(BasePath));
 					TruncatePath(Path, _basePath);
 				}
 			}
@@ -276,25 +250,13 @@ namespace MonoBuilder.ViewModels
 		public string TruncatedPath
 		{
 			get => _truncatedPath;
-			set
-			{
-				if (SetProperty(ref _truncatedPath, value))
-				{
-					OnPropertyChanged(nameof(TruncatedPath));
-				}
-			}
+			set => SetProperty(ref _truncatedPath, value);
 		}
 
 		public string Key
 		{
 			get => _key;
-			set
-			{
-				if (SetProperty(ref _key, value))
-				{
-					OnPropertyChanged(nameof(Key));
-				}
-			}
+			set => SetProperty(ref _key, value);
 		}
 
 		public FileEntry(string name, string key, string path, AppSettings settings, string? basePath = null)

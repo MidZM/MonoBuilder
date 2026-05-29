@@ -9,69 +9,39 @@ namespace MonoBuilder.Models.image_management
     public class MonoImage : BaseViewModel, INamedEntity, IMultiFile
     {
         private int _id = -1;
-        private string _name = "";
-        private string _path = "";
-        private string _fileKey = "";
-        private bool _synced = false;
+		private string _name = string.Empty;
+        private string _path = string.Empty;
+        private string _fileKey = string.Empty;
+        private bool _isSynced = false;
 
         public int EntityID
         {
             get => _id;
-            set
-            {
-                if (SetProperty(ref _id, value))
-                {
-                    OnPropertyChanged(nameof(EntityID));
-                }
-            }
+            set => SetProperty(ref _id, value);
         }
 
         public string Name
         {
             get => _name;
-            set
-            {
-                if (SetProperty(ref _name, value))
-                {
-                    OnPropertyChanged(nameof(Name));
-                }
-            }
+            set => SetProperty(ref _name, value);
         }
 
         public string Path
         {
             get => _path;
-            set
-            {
-                if (SetProperty(ref _path, value))
-                {
-                    OnPropertyChanged(nameof(Path));
-                }
-            }
+            set => SetProperty(ref _path, value);
         }
 
         public string FileKey
         {
             get => _fileKey;
-            set
-            {
-                if (SetProperty(ref _fileKey, value))
-                {
-                    OnPropertyChanged(nameof(_fileKey));
-                }
-            }
+            set => SetProperty(ref _fileKey, value);
         }
 
         public bool IsSynced
         {
-            get => _synced;
-            set
-            {
-                if (SetProperty(ref _synced, value))
-                {
-                    OnPropertyChanged(nameof(IsSynced));
-                }
-            }
+            get => _isSynced;
+            set => SetProperty(ref _isSynced, value);
         }
 
         public MonoImage(string name, string path)

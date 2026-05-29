@@ -2,77 +2,65 @@
 using MonoBuilder.Models.generics.interfaces;
 using MonoBuilder.Views.ViewUtils;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Data.Common;
-using System.Text;
+using System.ComponentModel;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
 
 namespace MonoBuilder.ViewModels._generic_models
 {
-    public abstract class TabbedContentModel<T> : ContentBuilderModel<T>
-		where T : IMultiFile, INamedEntity
+	public interface ITabbedContentCommandModel<TController, TEntity> : INotifyPropertyChanged
+		where TEntity : IMultiFile, INamedEntity
+		where TController : MonoSystem<TEntity>
+	{
+		Window Owner { get; set; }
+		AppSettings ApplicationSettings { get; set; }
+		TabEntries DataTabs { get; set; }
+		CollectionViewSource? DataViewSource { get; set; }
+		ObservableCollection<string> AvailableFiles { get; set; }
+		TabEntry? SelectedTab { get; set; }
+		TEntity? SelectedEntity { get; set; }
+		ObservableCollection<TEntity> SelectedEntities { get; set; }
+
+		internal void InitializeAvailableFiles(string type);
+		internal void InitializeDataTabs(string type, ObservableCollection<TEntity> dataSource);
+		internal void ClearSelectedEntities();
+		internal void ApplyDataTabs(string type);
+		internal double WindowSizeChanged(int currentWidth, double margin, double borderThickness, int padding = 0);
+		string GetDefaultDataFileKey(string type);
+
+		internal bool AddCanExecute(object? parameters = null);
+		internal bool ModifyOrRemoveCanExecute(object? parameters = null);
+	}
+
+    public abstract class TabbedContentModel<TController, TEntity> : TabbedContentCommandModel<TController, TEntity>
+		where TEntity : IMultiFile, INamedEntity
+		where TController : MonoSystem<TEntity>
     {
-		private readonly TabbedModel<T> _tabbedModel;
+		private readonly ContentBuilderModel<TEntity> _contentModel;
 
-		#region Tabbed Model Properties
-		public required Window Owner
-		{ get => _tabbedModel.Owner; set { _tabbedModel.Owner = value; } }
+		#region Content Model Properties
+		protected ContentManipulator GetManipulator(AppSettings settings, string type, ContentBuilderTemplate templatedElements, ObservableCollection<IEnumerable<string?>>? data = null)
+			=> _contentModel.GetManipulator(settings, type, templatedElements, data);
+		protected void SaveData(ContentManipulator window, MonoSystem<TEntity> system, string uniqueField, ObservableCollection<TEntity>? content = null)
+			=> _contentModel.SaveData(window, system, uniqueField, content);
+		protected Dictionary<string, string> ExtractElements(List<FrameworkElement> control)
+			=> _contentModel.ExtractElements(control);
+		protected string GetRelativePath(string folderPath, string contentIsActive)
+			=> _contentModel.GetRelativePath(folderPath, contentIsActive);
+		protected override void ApplyContentChanges(ContentManipulator window, List<FrameworkElement> control, int index, TEntity[]? entities = null)
+			=> _contentModel.ApplyContentChanges(window, control, index, entities);
 
-		public AppSettings ApplicationSettings
-		{ get => _tabbedModel.ApplicationSettings; set { _tabbedModel.ApplicationSettings = value; } }
-
-		public static Regex GetFileKey => TabbedModel<T>.GetFileKey;
-
-		public TabEntries DataTabs
-		{ get => _tabbedModel.DataTabs; set { _tabbedModel.DataTabs = value; } }
-
-		public CollectionViewSource? DataViewSource
-		{ get => _tabbedModel.DataViewSource; set { _tabbedModel.DataViewSource = value; } }
-
-		public ObservableCollection<string> AvailableFiles
-		{ get => _tabbedModel.AvailableFiles; set { _tabbedModel.AvailableFiles = value; } }
-
-		public TabEntry? SelectedTab
-		{ get => _tabbedModel.SelectedTab; set { _tabbedModel.SelectedTab = value; } }
-
-		public T? SelectedEntity
-		{ get => _tabbedModel.SelectedEntity; set { _tabbedModel.SelectedEntity = value; } }
-
-		public ObservableCollection<T> SelectedEntities
-		{ get => _tabbedModel.SelectedEntities; set { _tabbedModel.SelectedEntities = value; } }
+		public static Regex GetFileKey => IBuilderTabbedModel<TEntity>.GetFileKey;
 		#endregion
 
-		public TabbedContentModel(TabbedModel<T> tabbedModel)
+		public TabbedContentModel(ContentBuilderModel<TEntity> contentModel)
 		{
-			_tabbedModel = tabbedModel ?? throw new ArgumentNullException(nameof(tabbedModel));
-			_tabbedModel.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
+			_contentModel = contentModel ?? throw new ArgumentNullException(nameof(contentModel));
+			_contentModel.PropertyChanged += (s, e) => OnPropertyChanged(e.PropertyName);
 		}
 
-		#region Tabbed Model Methods
-		protected void InitializeAvailableFiles(string type)
-			=> _tabbedModel.InitializeAvailableFiles(type);
-		protected void InitializeDataTabs(string type, ObservableCollection<T> dataSource)
-			=> _tabbedModel.InitializeDataTabs(type, dataSource);
-		internal void ClearSelectedEntities()
-			=> _tabbedModel.ClearSelectedEntities();
-		protected void ApplyDataTabs(string type)
-			=> _tabbedModel.ApplyDataTabs(type);
-		protected double WindowSizeChanged(int currentWidth, double margin, double borderThickness, int padding = 0)
-			=> _tabbedModel.WindowSizeChanged(currentWidth, margin, borderThickness, padding);
-		public string GetDefaultDataFileKey(string type)
-			=> _tabbedModel.GetDefaultDataFileKey(type);
 
-
-		// =========================================================================================
-		// As stated on "TabbedModel<T>," this doesn't really go here, but it can be assumed to be
-		// needed due to the very high likelyhood that this type of tabbed model will contain Add,
-		// Modify, and Remove methods.
-		// =========================================================================================
-		protected bool AddCanExecute(object? parameters = null) => _tabbedModel.AddCanExecute(parameters);
-		protected bool ModifyOrRemoveCanExecute(object? parameters = null) => _tabbedModel.ModifyOrRemoveCanExecute(parameters);
-		#endregion
 	}
 }

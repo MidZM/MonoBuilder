@@ -1,4 +1,5 @@
-﻿using MonoBuilder.Models;
+﻿using MonoBuilder.Commands;
+using MonoBuilder.Models;
 using MonoBuilder.Models.generics.interfaces;
 using System;
 using System.Collections.Generic;
@@ -13,27 +14,26 @@ namespace MonoBuilder.ViewModels._generic_models
 {
     public class TabbedModel<T> : BaseViewModel, IBuilderTabbedModel<T> where T : IMultiFile
     {
-		public Window Owner { get; set; }
-		AppSettings IBuilderBaseModel.ApplicationSettings { get => ApplicationSettings; set => ApplicationSettings = value; }
-		public AppSettings ApplicationSettings { get; set; }
+		public required Window Owner { get; set; }
+		public required AppSettings ApplicationSettings { get; set; }
 
-		public static readonly Regex GetFileKey = new(@"^\((.+?)\)", RegexOptions.Compiled);
-
-		public TabEntries DataTabs { get; set; } = new();
-		public CollectionViewSource? DataViewSource { get; set; }
-
+		private TabEntries _dataTabs = new();
 		private ObservableCollection<string> _availableFiles = new();
 		private TabEntry? _selectedTab;
 		private T? _selectedEntity;
 		private ObservableCollection<T> _selectedEntities = new();
+		private CollectionViewSource? _dataViewSource;
+
+		public TabEntries DataTabs
+		{
+			get => _dataTabs;
+			set => SetProperty(ref _dataTabs, value);
+		}
 
 		public ObservableCollection<string> AvailableFiles
 		{
 			get => _availableFiles;
-			set
-			{
-				SetProperty(ref _availableFiles, value);
-			}
+			set => SetProperty(ref _availableFiles, value);
 		}
 
 		public TabEntry? SelectedTab
@@ -75,10 +75,12 @@ namespace MonoBuilder.ViewModels._generic_models
 		public ObservableCollection<T> SelectedEntities
 		{
 			get => _selectedEntities;
-			set
-			{
-				SetProperty(ref _selectedEntities, value);
-			}
+			set => SetProperty(ref _selectedEntities, value);
+		}
+		public CollectionViewSource? DataViewSource
+		{
+			get => _dataViewSource;
+			set => SetProperty(ref _dataViewSource, value);
 		}
 
 		#region Initialization Methods
@@ -181,18 +183,6 @@ namespace MonoBuilder.ViewModels._generic_models
 
 			return currentWidth - occupied;
 		}
-		#endregion
-
-		// =========================================================================================
-		// This doesn't really go here, but since the program really only uses these kinds of tabs
-		// alongside Add, Modify, and Remove commands, it tends to be be an okay assumption.
-		// =========================================================================================
-		// In a future version, this might be moved to an "ExecutionModel<T>", along with the
-		// execution commands, to cut down on redundent code.
-		// =========================================================================================
-		#region Common Execution Methods
-		internal bool AddCanExecute(object? _) => AvailableFiles.Count > 0;
-		internal bool ModifyOrRemoveCanExecute(object? _) => AvailableFiles.Count > 0 && SelectedEntities.Any();
 		#endregion
 	}
 }

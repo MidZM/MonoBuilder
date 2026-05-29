@@ -1,8 +1,10 @@
 ﻿using MonoBuilder.Commands;
 using MonoBuilder.Models;
+using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
 using MonoBuilder.Models.helpers;
 using MonoBuilder.Models.image_management;
+using MonoBuilder.Models.media_management;
 using MonoBuilder.Models.notification_management;
 using MonoBuilder.Views;
 using MonoBuilder.Views.ViewUtils;
@@ -11,7 +13,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using System.Windows.Input;
 
 namespace MonoBuilder.ViewModels.MainModel
 {
@@ -23,11 +24,14 @@ namespace MonoBuilder.ViewModels.MainModel
 		private readonly Characters CharacterData = new();
 		private readonly MonoImages ImageData = new();
 		private readonly Notifications NotificationData = new();
+		private readonly MediaHandler MediaData = new();
 		private readonly AppSettings ApplicationSettings = new();
 		private readonly FileSystemWatcher MainWatcher = new();
 		private readonly ActionHelper ActionUtility = new();
 		private readonly EventHelper EventUtility;
 		private readonly ScriptConversion Converter;
+
+		private readonly (string, MonoSystem)[] _systemsByStringName;
 
 		public required Window Owner { get; set; }
 
@@ -41,15 +45,29 @@ namespace MonoBuilder.ViewModels.MainModel
 		{
 			#region System Setup
 
+			_systemsByStringName = [
+				("Characters", CharacterData),
+				("Images", ImageData),
+				("Notifications", NotificationData)
+			];
+
 			ApplicationSettings.LoadDirectories();
 			CharacterData.LoadSettings(ApplicationSettings);
 			ImageData.LoadSettings(ApplicationSettings);
 			NotificationData.LoadSettings(ApplicationSettings);
+			MediaData.LoadSettings(ApplicationSettings);
 
 			ActionUtility.LoadActions();
-			EventUtility = new(("Characters", CharacterData), ("Images", ImageData));
-			EventUtility.RegisterCollection("Characters", CharacterData.AllCharacters);
-			EventUtility.RegisterCollection("Images", ImageData.AllImages);
+
+			EventUtility = new(_systemsByStringName);
+			EventUtility.RegisterCollection("Characters", (CharacterData.GetDataMode("characters") as AssetStore<Character>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Images", (ImageData.GetDataMode("images") as AssetStore<MonoImage>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Scenes", (ImageData.GetDataMode("scenes") as AssetStore<MonoImage>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Gallery", (ImageData.GetDataMode("gallery") as AssetStore<MonoImage>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Messages", (NotificationData.GetDataMode("messages") as AssetStore<Notification>)?.Collection ?? []);
+			EventUtility.RegisterCollection("Notifications", (NotificationData.GetDataMode("notifications") as AssetStore<Notification>)?.Collection ?? []);
+
+			EventUtility.LoadEvents();
 
 			Converter = new ScriptConversion(CharacterData, ActionUtility);
 
@@ -65,16 +83,38 @@ namespace MonoBuilder.ViewModels.MainModel
 
 			BuilderButtons = new()
 			{
-				new("Script Builder",       true, () => new ScriptBuilder(ApplicationSettings, Converter, ActionUtility)),
-				new("Character Builder",    false),
-				new("Image Builder",        true, () => new ImageBuilder(ApplicationSettings, ImageData, "Images")),
-				new("Scene Builder",        true, () => new ImageBuilder(ApplicationSettings, ImageData, "Scenes")),
-				new("Gallery Builder",      true, () => new ImageBuilder(ApplicationSettings, ImageData, "Gallery")),
-				new("Media Builder",        false),
-				new("Particle Builder",     false),
-				new("Message Builder",      true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Messages")),
-				new("Notification Builder", true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Notifications"))
-			};
+				new("Script Builder",		true, () => new ScriptBuilder(ApplicationSettings, Converter, ActionUtility)),
+				new("Character Builder",	false),
+				new("Image Builder",		true, () => new ImageBuilder(ApplicationSettings, ImageData, "Images")),
+				new("Scene Builder",		true, () => new ImageBuilder(ApplicationSettings, ImageData, "Scenes")),
+				new("Gallery Builder",		true, () => new ImageBuilder(ApplicationSettings, ImageData, "Gallery")),
+				new("Media Builder",		true, () =>
+				{
+					var result = DialogBox.Show(
+						"Choose an initial Media Builder...\n(You can change the builder type using the select box next to the close button.)",
+						"Choose a Builder",
+						600,
+						DialogIcon.Information,
+						new DialogButton("Music", DialogBoxResult.Continue),
+						new DialogButton("Sounds", DialogBoxResult.Yes),
+						new DialogButton("Voices", DialogBoxResult.OK),
+						new DialogButton("Videos", DialogBoxResult.TryAgain),
+						new DialogButton("Cancel", DialogBoxResult.Cancel, "ErrorButton"));
+
+					return result == DialogBoxResult.Continue
+						? new MediaBuilder(ApplicationSettings, MediaData, "Music")
+						: result == DialogBoxResult.Yes
+						? new MediaBuilder(ApplicationSettings, MediaData, "Sounds")
+						: result == DialogBoxResult.OK
+						? new MediaBuilder(ApplicationSettings, MediaData, "Voices")
+						: result == DialogBoxResult.TryAgain
+						? new MediaBuilder(ApplicationSettings, MediaData, "Videos")
+						: null;
+				}),
+				new("Particle Builder",		false),
+				new("Message Builder",		true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Messages")),
+				new("Notification Builder",	true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Notifications"))
+			}; // Particle Builder (⧉)
 
 			UtilityButtons = new()
 			{
@@ -99,6 +139,7 @@ namespace MonoBuilder.ViewModels.MainModel
 				ApplicationSettings,
 				Converter,
 				CharacterData,
+				MediaData,
 				ImageData,
 				NotificationData);
 			FileWatcher.SetCurrentContext(Owner);
@@ -116,6 +157,11 @@ namespace MonoBuilder.ViewModels.MainModel
 			if (NotificationData.CheckSynchronicity(true))
 			{
 				FileWatcher.ForciblyUpdateNotificationsList(false);
+			}
+
+			if (MediaData.CheckSynchronicity(true))
+			{
+				FileWatcher.ForciblyUpdateMediaList(false);
 			}
 		}
 
@@ -146,8 +192,11 @@ namespace MonoBuilder.ViewModels.MainModel
 
 				var window = button.CreateWindow();
 
-				SetupEnvironment(window);
-				window.Show();
+				if (window != null)
+				{
+					SetupEnvironment(window);
+					window.Show();
+				}
 			}
 
 			if (item is UtilityButton utility)

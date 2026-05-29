@@ -12,10 +12,10 @@ using System.Windows.Documents;
 
 namespace MonoBuilder.ViewModels.NotifierModel
 {
-    public partial class NotifierViewModel : TabbedModel<Notification>
+    public partial class NotifierViewModel : TabbedSpecialCommandModel<Notifications, Notification>
 	{
 		#region System Management Properties
-		public required Notifications NotifierData { get; set; }
+		public override required Notifications DataController { get; init; }
 		#endregion
 
 		#region State Management Properties
@@ -140,11 +140,9 @@ namespace MonoBuilder.ViewModels.NotifierModel
 		#endregion
 
 		private string Mode { get; set; } = "Messages";
-		public ObservableBoolean IsEditingNotifier { get; set; } = new();
-		public Notification? ModifyingNotifier { get; set; }
 		#endregion
 
-		public NotifierViewModel()
+		public NotifierViewModel() : base()
 		{
 			_cachedMarginSize = DataGridMargin.Left * 2;
 			_cachedBorderSize = DataGridBorderThickness.Left * 2;
@@ -154,31 +152,8 @@ namespace MonoBuilder.ViewModels.NotifierModel
 				_cachedBorderSize,
 				EditingContentColumnWidth + 1);
 
-			MoveNotifiersCommand = new(ExecuteMoveNotifiersCommand);
-			ExitCommand = new(ExecuteExitCommand, ExitCanExecute);
-
 			SaveCommand = new(ExecuteSaveCommand, SaveCanExecute);
 			CancelCommand = new(ExecuteCancelCommand);
-
-			AddNotifiersCommand = new(ExecuteAddNotifiersCommand, AddCanExecute);
-			ModifyNotifiersCommand = new(ExecuteModifyNotifiersCommand, ModifyOrRemoveCanExecute);
-			RemoveNotifiersCommand = new(ExecuteRemoveNotifierCommand, ModifyOrRemoveCanExecute);
-			SaveToScriptCommand = new(ExecuteSaveToScriptCommand, AddCanExecute);
-			ImportNotifiersCommand = new(ExecuteImportNotifiersCommand, AddCanExecute);
-
-			SelectedEntities.CollectionChanged += (s, e) =>
-			{
-				ModifyNotifiersCommand.RaiseCanExecuteChanged();
-				RemoveNotifiersCommand.RaiseCanExecuteChanged();
-			};
-
-			IsEditingNotifier.PropertyChanged += (s, e) =>
-			{
-				if (e.PropertyName == nameof(IsEditingNotifier.Value))
-				{
-					ExitCommand.RaiseCanExecuteChanged();
-				}
-			};
 
 			PropertyChanged += (s, e) =>
 			{
@@ -186,7 +161,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 				{
 					ShowPreviewMessage(SelectedEntity);
 				}
-				else
+				else if (!IsEditingData.Value && SelectedEntity == null)
 				{
 					RemovePreviewMessage();
 				}
@@ -195,18 +170,18 @@ namespace MonoBuilder.ViewModels.NotifierModel
 
 		#region State Mangement Methods
 		private bool SaveCanExecute(object? _) => !string.IsNullOrWhiteSpace(BoxNameText);
-		private bool ExitCanExecute(object? _) => IsEditingNotifier.Inverse;
+		protected override bool ExitCanExecute(object? _) => IsEditingData.Inverse;
 		#endregion
 
 		#region Initialization Methods
 		public void RunInitializations(string mode)
 		{
 			Mode = mode;
-			NotifierData.SetDataMode(mode.ToLower());
+			DataController.SetDataMode(mode.ToLower());
 			BoxFileSelectedFile = AvailableFiles.FirstOrDefault() ?? string.Empty;
 
 			InitializeAvailableFiles(mode);
-			InitializeDataTabs(mode, NotifierData.DataMode.Collection);
+			InitializeDataTabs(mode, DataController.DataMode.Collection);
 		}
 		#endregion
 
@@ -240,7 +215,7 @@ namespace MonoBuilder.ViewModels.NotifierModel
 
 		private void RemovePreviewMessage()
 		{
-			ClearNotifierEditors();
+			ClearDataEditors();
 			PreviewMessage.Text = string.Empty;
 		}
 		#endregion

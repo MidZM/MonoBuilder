@@ -189,7 +189,7 @@ namespace MonoBuilder.Views.ViewUtils
                                 DialogIcon.Warning);
                             if (mergeResult == DialogBoxResult.No)
                             {
-                                labels.RemoveAll(label => label.InScript);
+                                labels.RemoveAll(label => label.IsSynced);
                             }
                         }
 
@@ -197,7 +197,7 @@ namespace MonoBuilder.Views.ViewUtils
                         {
                             foreach (LoadedLabel label in labels)
                             {
-                                if (label.InScript)
+                                if (label.IsSynced)
                                 {
                                     Editor.MergeWithScript(label.Name, label.Content?.ToString() ?? string.Empty, key);
                                 }

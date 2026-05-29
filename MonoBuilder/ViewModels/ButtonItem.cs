@@ -14,58 +14,34 @@ namespace MonoBuilder.ViewModels
 	{
 		private string _text = string.Empty;
 		private bool _isEnabled = true;
-		private Func<Window>? _createWindow = null;
+		private Func<Window?>? _createWindow = null;
 		private Action? _doAction = null;
 
 		public string Text
 		{
 			get => _text;
-			set
-			{
-				if (SetProperty(ref _text, value))
-				{
-					OnPropertyChanged(nameof(Text));
-				}
-			}
+			set => SetProperty(ref _text, value);
 		}
 
 		public bool IsEnabled
 		{
 			get => _isEnabled;
-			set
-			{
-				if (SetProperty(ref _isEnabled, value))
-				{
-					OnPropertyChanged(nameof(IsEnabled));
-				}
-			}
+			set => SetProperty(ref _isEnabled, value);
 		}
 
-		public Func<Window>? CreateWindow
+		public Func<Window?>? CreateWindow
 		{
 			get => _createWindow;
-			set
-			{
-				if (SetProperty(ref _createWindow, value))
-				{
-					OnPropertyChanged(nameof(CreateWindow));
-				}
-			}
+			set => SetProperty(ref _createWindow, value);
 		}
 
 		public Action? DoAction
 		{
 			get => _doAction;
-			set
-			{
-				if (SetProperty(ref _doAction, value))
-				{
-					OnPropertyChanged(nameof(DoAction));
-				}
-			}
+			set => SetProperty(ref _doAction, value);
 		}
 
-		public ButtonItem(string text, bool isEnabled, Func<Window>? createWindow = null, Action? doAction = null)
+		public ButtonItem(string text, bool isEnabled, Func<Window?>? createWindow = null, Action? doAction = null)
 		{
 			Text = text;
 			IsEnabled = isEnabled;
@@ -90,109 +66,55 @@ namespace MonoBuilder.ViewModels
 		public int Width
 		{
 			get => _width;
-			set
-			{
-				if (SetProperty(ref _width, value))
-				{
-					OnPropertyChanged(nameof(Width));
-				}
-			}
+			set => SetProperty(ref _width, value);
 		}
 
 		public int Height
 		{
 			get => _height;
-			set
-			{
-				if (SetProperty(ref _height, value))
-				{
-					OnPropertyChanged(nameof(Height));
-				}
-			}
+			set => SetProperty(ref _height, value);
 		}
 
 		public int Padding
 		{
 			get => _padding;
-			set
-			{
-				if (SetProperty(ref _padding, value))
-				{
-					OnPropertyChanged(nameof(Padding));
-				}
-			}
+			set => SetProperty(ref _padding, value);
 		}
 
 		public int ImgWidth
 		{
 			get => _imgWidth;
-			set
-			{
-				if (SetProperty(ref _imgWidth, value))
-				{
-					OnPropertyChanged(nameof(ImgWidth));
-				}
-			}
+			set => SetProperty(ref _imgWidth, value);
 		}
 
 		public int ImgHeight
 		{
 			get => _imgHeight;
-			set
-			{
-				if (SetProperty(ref _imgHeight, value))
-				{
-					OnPropertyChanged(nameof(ImgHeight));
-				}
-			}
+			set => SetProperty(ref _imgHeight, value);
 		}
 
 		public ImageSource Source
 		{
 			get => _source;
-			set
-			{
-				if (SetProperty(ref _source, value))
-				{
-					OnPropertyChanged(nameof(Source));
-				}
-			}
+			set => SetProperty(ref _source, value);
 		}
 
 		public string LabelText
 		{
 			get => _labelText;
-			set
-			{
-				if (SetProperty(ref _labelText, value))
-				{
-					OnPropertyChanged(nameof(LabelText));
-				}
-			}
+			set => SetProperty(ref _labelText, value);
 		}
 
 		public Func<Window>? CreateWindow
 		{
 			get => _createWindow;
-			set
-			{
-				if (SetProperty(ref _createWindow, value))
-				{
-					OnPropertyChanged(nameof(CreateWindow));
-				}
-			}
+			set => SetProperty(ref _createWindow, value);
 		}
 
 		public Action? DoAction
 		{
 			get => _doAction;
-			set
-			{
-				if (SetProperty(ref _doAction, value))
-				{
-					OnPropertyChanged(nameof(DoAction));
-				}
-			}
+			set => SetProperty(ref _doAction, value); 
 		}
 
 		public UtilityButton(string source, Func<Window>? createWindow = null, Action? doAction = null)

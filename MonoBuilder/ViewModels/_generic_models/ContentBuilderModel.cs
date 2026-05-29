@@ -12,15 +12,15 @@ namespace MonoBuilder.ViewModels._generic_models
 {
 	public interface IContentBuilder<T> where T : INamedEntity
 	{
-		ContentManipulator GetManipulator(AppSettings settings, string type, ContentBuilderTemplate templatedElements, ObservableCollection<string?>? data = null);
+		ContentManipulator GetManipulator(AppSettings settings, string type, ContentBuilderTemplate templatedElements, ObservableCollection<IEnumerable<string?>>? data = null);
 		void SaveData(ContentManipulator window, MonoSystem system, string uniqueField, ObservableCollection<T>? content = null);
 		Dictionary<string, string> ExtractElements(List<FrameworkElement> control);
 		string GetRelativePath(string folderPath, string contentIsActive);
 	}
 
-    public abstract class ContentBuilderModel<T> : BaseViewModel where T : INamedEntity
+    public class ContentBuilderModel<T> : BaseViewModel where T : INamedEntity, IMultiFile
 	{
-		protected ContentManipulator GetManipulator(AppSettings settings, string type, ContentBuilderTemplate templatedElements, ObservableCollection<IEnumerable<string?>>? data = null)
+		internal ContentManipulator GetManipulator(AppSettings settings, string type, ContentBuilderTemplate templatedElements, ObservableCollection<IEnumerable<string?>>? data = null)
 		{
 			List<Dictionary<string, string?>>? dataParams = data != null
 				? templatedElements.GetCombination(data)
@@ -33,7 +33,7 @@ namespace MonoBuilder.ViewModels._generic_models
 				dataParams);
 		}
 
-		protected void SaveData(ContentManipulator window, MonoSystem system, string uniqueField, ObservableCollection<T>? content = null)
+		internal void SaveData(ContentManipulator window, MonoSystem<T> system, string uniqueField, ObservableCollection<T>? content = null)
 		{
 			var tags = new List<string>();
 			window.DynamicRows.Values.ToList().ForEach(row =>
@@ -68,10 +68,10 @@ namespace MonoBuilder.ViewModels._generic_models
 				ApplyContentChanges(window, rowArray[i], i, content?.ToArray());
 			}
 
-			system.SaveData();
+			system.SaveData(system._SaveString);
 		}
 
-		protected Dictionary<string, string> ExtractElements(List<FrameworkElement> control)
+		internal Dictionary<string, string> ExtractElements(List<FrameworkElement> control)
 		{
 			Dictionary<string, string> elements = [];
 			foreach (var element in control)
@@ -97,7 +97,10 @@ namespace MonoBuilder.ViewModels._generic_models
 					var split = button.Name.Split('_');
 					var lastElement = split[split.Length - 1];
 
-					var textContent = (string)button.Tag;
+					var textContent = (bool)(button.Content.ToString()?.StartsWith('#') ?? false) ?
+						(string)button.Content :
+						(string)button.Tag;
+
 					elements.Add(lastElement, textContent);
 				}
 			}
@@ -105,7 +108,7 @@ namespace MonoBuilder.ViewModels._generic_models
 			return elements;
 		}
 
-		protected string GetRelativePath(string folderPath, string contentIsActive)
+		internal string GetRelativePath(string folderPath, string contentIsActive)
 		{
 			var userProfile = contentIsActive;
 			string? result = Path.GetRelativePath(userProfile, folderPath).Replace('\\', '/');
@@ -113,7 +116,8 @@ namespace MonoBuilder.ViewModels._generic_models
 			return result;
 		}
 
-		protected abstract void ApplyContentChanges(ContentManipulator window, List<FrameworkElement> control, int index, T[]? images = null);
+		internal virtual void ApplyContentChanges(ContentManipulator window, List<FrameworkElement> control, int index, T[]? images = null)
+		{}
 	}
 
 	public class ContentBuilderTemplate

@@ -1,202 +1,113 @@
-﻿using MonoBuilder.Views.ViewUtils;
-using MonoBuilder.Models.character_management;
+﻿using MonoBuilder.Models.character_management;
 using MonoBuilder.Models.generics.enums;
+using MonoBuilder.Views.ViewUtils;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace MonoBuilder.Models
 {
-    public class CharacterStructure
+	public partial class Characters : MonoSystem<Character>
     {
-        public string Name { get; set; } = "";
-        public string Tag { get; set; } = "";
-        public string? Color { get; set; }
-        public string? Directory { get; set; }
-        public object? Sprites { get; set; }
-        public string FileKey { get; set; } = "";
-        public bool IsSynced { get; set; } = false;
-    }
+		private readonly AssetStore<Character> _characters = new()
+		{
+			TypeName = "Characters",
+			TypeBody = "charactersLabel",
+			MasterGuideContent = new(
+				"Characters",
+				"// CHARACTERS_INSERTION_POINT",
+				"// END_CHARACTERS_INSERTION_POINT"),
+			ChildGuideContent = new(
+				"CharactersLabel",
+				"// START_CHARACTER",
+				"// END_CHARACTER")
+		};
 
-    public partial class Characters : MonoSystem<Character>
-    {
-        //public ObservableCollection<Character> AllCharactersSource { get; set; } = new ObservableCollection<Character>();
-        public ObservableCollection<Character> AllCharacters { get; set; } = new ObservableCollection<Character>();
+		public override AssetStore<Character> DataMode { get; set; }
+		protected override string SaveString { get; } = "characters";
+
+        public ObservableCollection<Character> AllCharacters { get; private set; }
 
         [GeneratedRegex(@"^([""'`]?)(?<tag>.*)\1.*[:]*[\{] // START_CHARACTER$", RegexOptions.Singleline)]
         private static partial Regex CharacterRegex();
         [GeneratedRegex(@"^([""'`]?)(?<key>.*)\1[:] (?<attr>.*)$", RegexOptions.Singleline)]
         private static partial Regex AttributeRegex();
 
-        private readonly string Type = "Characters";
-        private readonly string TypeLabel = "CharactersLabel";
-
         public Characters()
         {
-			ContentGuides = new()
+			AllCharacters = _characters.Collection;
+
+			AllDataModes = new()
 			{
-				{
-					"Characters",
-					[
-						"// CHARACTERS_INSERTION_POINT",
-						"// END_CHARACTERS_INSERTION_POINT"
-					]
-				},
-				{
-					"CharactersLabel",
-					[
-						"// START_CHARACTER",
-						"// END_CHARACTER"
-					]
-				}
+				[_characters.TypeName.ToLower()] = _characters
 			};
 
-            LoadData();
-        }
+			DataMode = _characters;
 
-        public override void LoadData()
-        {
-            try
-            {
-                if (!Directory.Exists("data"))
-                {
-                    Directory.CreateDirectory("data");
-                }
+            LoadData(SaveString);
+		}
 
-                if (!File.Exists("data/characters.xml"))
-                {
-                    SaveData();
-                    return;
-                }
+		#region Handle File Data
 
-                SystemData = XDocument.Load("data/characters.xml");
-                AllCharacters.Clear();
+		#region Data Loading Utilities
+		protected override void LoadElement(XElement element, ObservableCollection<Character> collection, object? special = null)
+		{
+			string? name = (string?)element.Attribute("Name");
+			string? tag = (string?)element.Attribute("Tag");
+			string? color = (string?)element.Attribute("Color");
+			string? path = (string?)element.Attribute("Path");
+			string fileKey = (string?)element.Attribute("FileKey") ?? string.Empty;
+			_ = bool.TryParse((string?)element.Attribute("IsSynced"), out bool isSynced);
 
-                List<XElement> list = SystemData.Descendants("Character").ToList();
-                foreach (XElement character in list)
-                {
-                    string? name = (string?)character.Attribute("Name");
-                    string? tag = (string?)character.Attribute("Tag");
-                    string? color = (string?)character.Attribute("Color");
-                    string? path = (string?)character.Attribute("Path");
-                    string fileKey = (string?)character.Attribute("FileKey") ?? string.Empty;
-                    _ = bool.TryParse((string?)character.Attribute("IsSynced"), out bool isSynced);
-
-                    if (
-                        name != null &&
-                        tag != null
-                    )
-                    {
-                        Normal normalCharacter = new Normal(name, tag, color ?? string.Empty, path ?? string.Empty)
-                        {
-                            EntityID = AllCharacters.Count,
-                            FileKey = fileKey,
-                            IsSynced = isSynced
-                        };
-
-                        AllCharacters.Add(normalCharacter);
-                    }
-                }
-            }
-			catch (FileNotFoundException error)
+			if (name != null && tag != null)
 			{
-				DialogBox.Show($"Save Data Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
+				Character character = new Character(name, tag, color, path)
+				{
+					EntityID = collection.Count,
+					FileKey = fileKey,
+					IsSynced = isSynced
+				};
+
+				collection.Add(character);
 			}
-			catch (XmlException error)
-			{
-				DialogBox.Show($"Characters File Reading Failure!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
-			catch (Exception error)
-			{
-				DialogBox.Show($"Something went wrong!\r\n{error}", "Error", DialogButtonDefaults.OK, DialogIcon.Error);
-			}
-        }
+		}
 
-        public override void SaveData()
+		protected override (AssetStore<Character>, List<XElement>)[] GetLoadData()
+			=> [(_characters, SystemData.Descendants("Character").ToList())];
+		#endregion
+
+		#region Data Saving Utilities
+		private XElement SaveElement(string type, AssetStore<Character> store)
+		{
+			return new XElement(store.TypeName,
+				store.Collection.Select(element => new XElement(type,
+					new XAttribute("EntityID", element.EntityID),
+					new XAttribute("Name", element.Name),
+					new XAttribute("Tag", element.Tag),
+					!string.IsNullOrEmpty(element.FileKey) ? new XAttribute("FileKey", element.FileKey) : null,
+					element.Color != null ? new XAttribute("Color", element.Color) : null,
+					element.Directory != null ? new XAttribute("Path", element.Directory) : null,
+					new XAttribute("IsSynced", element.IsSynced)
+					))
+				);
+		}
+
+		protected override XElement[] GetSaveData()
+			=> [SaveElement("Character", DataMode)];
+		#endregion
+
+		#endregion
+
+		private Character? FindCharacter(string tag) => AllCharacters.FirstOrDefault(c => c.Tag == tag);
+
+        #region Sync Characters to the Program
+        public override Dictionary<string, Character> SyncData(bool duplicatesOnly = false)
         {
-            SystemData = new XDocument(
-                new XDeclaration("1.0", "utf-8", "yes"),
-                new XElement("Root",
-                    new XElement(Type,
-                        AllCharacters.Select(c => new XElement("Character",
-                            new XAttribute("CharacterID", c.EntityID),
-                            new XAttribute("Name", c.Name),
-                            new XAttribute("Tag", c.Tag),
-                            !string.IsNullOrEmpty(c.FileKey) ? new XAttribute("FileKey", c.FileKey) : null,
-                            c.Color != null ? new XAttribute("Color", c.Color) : null,
-                            c.Directory != null ? new XAttribute("Path", c.Directory) : null,
-                            new XAttribute("IsSynced", c.IsSynced)
-                        ))
-                    )
-                )
-            );
+            var characters = new Dictionary<string, Character>();
+            var files = GetDataFiles();
 
-            SystemData.Save("data/characters.xml");
-        }
-
-        public void LoadSettings(AppSettings settings)
-        {
-            ApplicationSettings = settings;
-        }
-
-        private Dictionary<string, string> GetCharacterFiles()
-        {
-            if (ApplicationSettings == null)
-                return [];
-
-            var files = ApplicationSettings.GetAllFilePaths(Type);
-            if (files.Count == 0)
-            {
-                var legacyPath = ApplicationSettings.GetFilePath(Type);
-                if (!string.IsNullOrEmpty(legacyPath))
-                    files[Type] = legacyPath;
-            }
-
-            return files;
-        }
-
-        private string? ResolveCharacterFileKey(string? fileKey = null)
-        {
-            var files = GetCharacterFiles();
-            if (!string.IsNullOrWhiteSpace(fileKey) && files.ContainsKey(fileKey))
-                return fileKey;
-
-            if (!string.IsNullOrWhiteSpace(fileKey))
-            {
-                var prefixedMatch = files.Keys.OrderBy(key => key).FirstOrDefault(key => key.StartsWith(fileKey + ":", StringComparison.Ordinal));
-                if (!string.IsNullOrEmpty(prefixedMatch))
-                    return prefixedMatch;
-            }
-
-            return files.Keys.OrderBy(key => key).FirstOrDefault();
-        }
-
-        private string? ResolveCharacterFilePath(string? fileKey, out string resolvedFileKey)
-        {
-            resolvedFileKey = ResolveCharacterFileKey(fileKey) ?? string.Empty;
-            if (string.IsNullOrEmpty(resolvedFileKey))
-                return null;
-
-            return ApplicationSettings?.GetAllFilePaths().TryGetValue(resolvedFileKey, out string? filePath) == true
-                ? filePath
-                : null;
-        }
-
-        private string? ResolveCharacterFilePath(Character? character, out string resolvedFileKey)
-        {
-            return ResolveCharacterFilePath(character?.FileKey, out resolvedFileKey);
-        }
-
-        private Character? FindCharacter(string tag) => AllCharacters.FirstOrDefault(c => c.Tag == tag);
-
-        #region Sync characters to the program
-        public Dictionary<string, CharacterStructure> SyncCharacters(bool duplicatesOnly = false)
-        {
-            var characters = new Dictionary<string, CharacterStructure>();
-            var files = GetCharacterFiles();
             if (files.Count == 0)
             {
                 DialogBox.Show(
@@ -207,14 +118,14 @@ namespace MonoBuilder.Models
                 throw new Exception("Bad file data...\nNo character files are configured.");
             }
 
-            foreach (var (fileKey, filePath) in files.OrderBy(entry => entry.Key))
+			var guide = DataMode.MasterGuideContent;
+			foreach (var (fileKey, filePath) in files.OrderBy(entry => entry.Key))
             {
                 string[] content = File.ReadAllLines(filePath);
-                int start = Array.FindIndex(content, line => line.Trim() == ContentGuides[Type][0]);
-                int end = Array.FindIndex(content, start + 1, line => line.Trim() == ContentGuides[Type][1]);
+                int start = Array.FindIndex(content, line => line.Trim() == guide.GuideStart);
+                int end = Array.FindIndex(content, start + 1, line => line.Trim() == guide.GuideEnd);
 
-                if (start <= -1 || end <= -1)
-                    continue;
+                if (start <= -1 || end <= -1) continue;
 
                 string[] innerContent = content[(start + 1)..end];
                 string tag = string.Empty;
@@ -229,27 +140,16 @@ namespace MonoBuilder.Models
                     {
                         tag = result.Groups["tag"].Value;
                         try
-                        {
-                            if (duplicatesOnly)
-                            {
-                                if (CheckedDuplicates(new CharacterStructure { Tag = tag }))
-                                {
-                                    characters[tag] = new CharacterStructure
-                                    {
-                                        Tag = tag,
-                                        FileKey = fileKey
-                                    };
-                                }
-                            }
-                            else
-                            {
-                                characters[tag] = new CharacterStructure
-                                {
-                                    Tag = tag,
-                                    FileKey = fileKey
-                                };
-                            }
-                        }
+						{
+							bool isDuplicate = ContainsName(tag);
+							if (!duplicatesOnly || isDuplicate)
+							{
+								characters[tag] = new Character(string.Empty, tag)
+								{
+									FileKey = fileKey
+								};
+							}
+						}
                         catch (Exception error)
                         {
                             tag = string.Empty;
@@ -288,7 +188,7 @@ namespace MonoBuilder.Models
                         if (key == "name") characters[tag].Name = attribute;
                         if (key == "color") characters[tag].Color = attribute;
                         if (key == "directory") characters[tag].Directory = attribute;
-                        if (key == "Sprites") characters[tag].Sprites = attribute;
+                        //if (key == "Sprites") characters[tag].Sprites = attribute;
                     }
                 }
             }
@@ -297,105 +197,93 @@ namespace MonoBuilder.Models
         }
         #endregion
 
-        #region Handle character data in program
-        public bool CheckedDuplicates(Character characterToCheck)
+		#region Handle Character Data in Files
+
+		#region Utility Methods
+		private void CreateCharacterDirectory(string tag, string? data)
+		{
+			var assets = ApplicationSettings?.GetFolderPath("Assets");
+			if (assets != null && data != null)
+			{
+				if (Path.Exists($"{assets}/characters") &&
+					!Path.Exists($"{assets}/characters/{data}"))
+				{
+					if (DialogBox.Show(
+						$"It appears this character's directory does not exist.\nWould you like to generate the missing directory?\n\nCharacter: {tag}\nDirectory: {data}",
+						"Missing Directory",
+						DialogButtonDefaults.YesNo,
+						DialogIcon.Question) == DialogBoxResult.Yes)
+					{
+						Directory.CreateDirectory($"{assets}/characters/{data}");
+					}
+				}
+			}
+		}
+
+		private string ProcessDictionaryTag(string key, object value)
+		{
+			if (value is string stringValue)
+			{
+				return $"\"{key}\": \"{stringValue.Replace("\"", "\\\"")}\"";
+			}
+
+			return $"\"{key}\": {value}";
+		}
+
+		private int FindFirstNonWhitespaceIndex(string input)
+		{
+			for (int i = 0; i < input.Length; i++)
+			{
+				if (!char.IsWhiteSpace(input[i]))
+				{
+					return i;
+				}
+			}
+			return -1;
+		}
+		#endregion
+
+		#region Entity Checking Methods
+		public override Dictionary<string, bool> EntitiesExistInScript(HashSet<string> tags)
+		{
+			var files = GetDataFiles();
+			if (files.Count == 0)
+			{
+				DialogBox.Show("Attempted to check character existence without a proper file path!",
+					"No File Path", DialogButtonDefaults.OK, DialogIcon.Warning);
+				return [];
+			}
+
+			var masterGuide = DataMode.MasterGuideContent;
+			var tagsInScript = tags.ToDictionary(tag => tag, _ => false);
+
+			foreach (var (_, filePath) in files)
+			{
+				string[] lines = File.ReadAllLines(filePath);
+				bool inSection = false;
+
+				foreach (string line in lines)
+				{
+					string trimmed = line.Trim();
+
+					if (trimmed == masterGuide.GuideStart) { inSection = true; continue; }
+					if (inSection && trimmed == masterGuide.GuideEnd) break;
+
+					if (inSection)
+					{
+						var match = CharacterRegex().Match(trimmed);
+						if (match.Success && tags.Contains(match.Groups["tag"].Value))
+							tagsInScript[match.Groups["tag"].Value] = true;
+					}
+				}
+			}
+
+			return tagsInScript;
+		}
+
+        public override bool EntityExistsInScript(string tag, string? fileKey = null)
         {
-            foreach (Character character in AllCharacters)
-            {
-                if (character.Tag == characterToCheck.Tag)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public bool CheckedDuplicates(CharacterStructure characterToCheck)
-        {
-            foreach (Character character in AllCharacters)
-            {
-                if (character.Tag == characterToCheck.Tag)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private void ReorderCharacters()
-        {
-            for (int i = 0; i < AllCharacters.Count; i++)
-            {
-                Character character = AllCharacters[i];
-                character.EntityID = i;
-            }
-        }
-
-        private void ReorderCharacters(int startingIndex)
-        {
-            for (int i = startingIndex; i < AllCharacters.Count; i++)
-            {
-                Character character = AllCharacters[i];
-                character.EntityID = i;
-            }
-        }
-
-        public void AddCharacter(Character character)
-        {
-            if (string.IsNullOrEmpty(character.FileKey))
-                character.FileKey = ResolveCharacterFileKey(Type) ?? string.Empty;
-
-            character.EntityID = AllCharacters.Count;
-            AllCharacters.Add(character);
-            SaveData();
-        }
-
-        public bool RemoveCharacter(int characterId)
-        {
-            Character? character = AllCharacters.FirstOrDefault(c => c.EntityID == characterId);
-            if (character != null)
-            {
-                int index = AllCharacters.IndexOf(character);
-                AllCharacters.RemoveAt(index);
-                ReorderCharacters(index);
-                SaveData();
-                return true;
-            }
-
-            return false;
-        }
-
-        public Character? CheckCharacter(int characterId)
-        {
-            Character? character = AllCharacters.FirstOrDefault(c => c.EntityID == characterId);
-            return character;
-        }
-
-        public Character UpdateCharacter(int characterId, Character character)
-        {
-            Character? oldCharacter = AllCharacters.FirstOrDefault(c => c.EntityID == characterId);
-            if (oldCharacter != null)
-            {
-                character.EntityID = oldCharacter.EntityID;
-                if (string.IsNullOrEmpty(character.FileKey))
-                    character.FileKey = oldCharacter.FileKey;
-                if (!character.IsSynced)
-                    character.IsSynced = oldCharacter.IsSynced;
-                AllCharacters.Remove(oldCharacter);
-                AllCharacters.Insert(characterId, character);
-                SaveData();
-            }
-
-            return AllCharacters[characterId];
-        }
-        #endregion
-
-        #region Handle character data in file
-        public bool CharacterExistsInScript(string tag, string? fileKey = null)
-        {
-            var files = GetCharacterFiles();
+            var files = GetDataFiles();
             if (files.Count == 0)
             {
                 DialogBox.Show(
@@ -406,9 +294,10 @@ namespace MonoBuilder.Models
                 return false;
             }
 
+			var childGuide = DataMode.ChildGuideContent!;
             var filesToCheck = string.IsNullOrWhiteSpace(fileKey)
                 ? files.OrderBy(entry => entry.Key)
-                : files.Where(entry => entry.Key == ResolveCharacterFileKey(fileKey));
+                : files.Where(entry => entry.Key == ResolveDataFileKey(fileKey));
 
             foreach (var (_, filePath) in filesToCheck)
             {
@@ -416,7 +305,7 @@ namespace MonoBuilder.Models
                 string? line;
                 while ((line = reader.ReadLine()) != null)
                 {
-                    if (line.EndsWith(ContentGuides[TypeLabel][0], StringComparison.Ordinal) && line.Contains(tag, StringComparison.Ordinal))
+                    if (line.EndsWith(childGuide.GuideStart, StringComparison.Ordinal) && line.Contains(tag, StringComparison.Ordinal))
                     {
                         string trimmed = line.Trim();
                         var result = CharacterRegex().Match(trimmed);
@@ -427,60 +316,112 @@ namespace MonoBuilder.Models
             }
 
             return false;
-        }
+		}
 
-        public bool CharacterExistsInScript(int id)
+		public override Dictionary<string, bool> EntityContentMatches(List<string> tags, string? fileKey = null)
+		{
+			var results = tags.ToDictionary(t => t, _ => true);
+			var remaining = new HashSet<string>(tags);
+
+			var masterGuide = DataMode.MasterGuideContent;
+			var filePath = ResolveDataFilePath(fileKey, out _);
+			if (filePath == null)
+				return results;
+
+			string[] fileContent = File.ReadAllLines(filePath);
+			int start = Array.FindIndex(fileContent, line => line.Trim() == masterGuide.GuideStart);
+			int end = Array.FindIndex(fileContent, start + 1, line => line.Trim() == masterGuide.GuideEnd);
+
+			if (start == -1 || end == -1)
+				return results;
+
+			string[] innerContent = fileContent[(start + 1)..end];
+			string currentTag = string.Empty;
+			var parsedAttributes = new Dictionary<string, string>();
+
+			foreach (string rawLine in innerContent)
+			{
+				if (remaining.Count == 0) break;
+
+				string line = rawLine.Trim();
+				var charResult = CharacterRegex().Match(line);
+				bool isEndCharacter = line.StartsWith("} // END_CHARACTER") || line.StartsWith("}, // END_CHARACTER");
+
+				if (charResult.Success)
+				{
+					currentTag = charResult.Groups["tag"].Value;
+					parsedAttributes.Clear();
+					continue;
+				}
+
+				if (currentTag != string.Empty && remaining.Contains(currentTag))
+				{
+					if (isEndCharacter)
+					{
+						var character = DataMode.Collection.FirstOrDefault(c => c.Tag == currentTag);
+						if (character != null)
+						{
+							parsedAttributes.TryGetValue("name", out string? scriptName);
+							parsedAttributes.TryGetValue("color", out string? scriptColor);
+							parsedAttributes.TryGetValue("directory", out string? scriptDirectory);
+
+							results[currentTag] =
+								scriptName == character.Name &&
+								(scriptColor ?? string.Empty) == (character.Color ?? string.Empty) &&
+								(scriptDirectory ?? string.Empty) == (character.Directory ?? string.Empty);
+						}
+
+						remaining.Remove(currentTag);
+						currentTag = string.Empty;
+						parsedAttributes.Clear();
+						continue;
+					}
+
+					string attrLine = line.EndsWith(",") ? line[..^1] : line;
+					var attrRes = AttributeRegex().Match(attrLine);
+					if (attrRes.Success)
+					{
+						string key = attrRes.Groups["key"].Value;
+						string attribute = attrRes.Groups["attr"].Value;
+
+						if (attribute.Length >= 2 &&
+							(attribute.StartsWith("\"") && attribute.EndsWith("\"") ||
+							 attribute.StartsWith("'") && attribute.EndsWith("'") ||
+							 attribute.StartsWith("`") && attribute.EndsWith("`")))
+						{
+							attribute = attribute[1..^1];
+						}
+
+						parsedAttributes[key] = attribute;
+					}
+				}
+			}
+
+			return results;
+		}
+		#endregion
+
+		#region Conversion Methods
+		public override Dictionary<string, string?> ConvertToScriptContent(Character character)
         {
-            var character = CheckCharacter(id);
-            var tag = character?.Tag;
-            if (tag == null) return false;
+			var dict = new Dictionary<string, string?>()
+			{
+				["tag"] = character.Tag,
+				["name"] = character.Name,
+				["color"] = character.Color,
+				["directory"] = character.Directory
+				// Sprites...?
+			};
 
-            return CharacterExistsInScript(tag, character?.FileKey);
+            return dict;
         }
 
-        private string AddIndentation()
-        {
-            return ApplicationSettings?.GetIndentationType() switch
-            {
-                "Tabs"       => "\t",
-                "Spaces"    => new string(' ', ApplicationSettings.GetIndentationAmount()),
-                _           => new string(' ', 4)
-            };
-        }
-
-        public Dictionary<string, string?> ConvertToScriptContent(Character character)
-        {
-            var content = new Dictionary<string, string?>();
-            if (character is Normal normalCharacter)
-            {
-                content.Add("tag", normalCharacter.Tag);
-                content.Add("name", normalCharacter.Name);
-                content.Add("color", normalCharacter.Color);
-                content.Add("directory", normalCharacter.Directory);
-
-                // Not implemented yet.
-                //content.Add("sprites", normalCharacter.Sprites);
-            }
-            else if (character is Expressive expresiveCharacter)
-            {
-                content.Add("tag", expresiveCharacter.Tag);
-                content.Add("name", expresiveCharacter.Name);
-                content.Add("color", expresiveCharacter.Color);
-                content.Add("directory", expresiveCharacter.Directory);
-
-                // Not implemented yet.
-                //content.Add("sprites", expresiveCharacter.Sprites);
-            }
-
-
-            return content;
-        }
-
-        private string? ConvertToScriptContent(Dictionary<string, string?> content)
+        protected override string? ConvertToScriptContent(Dictionary<string, string?> content)
         {
             if (content.TryGetValue("tag", out string? characterTag))
             {
-                string output = $"{AddIndentation()}\"{characterTag}\": {{ {ContentGuides[TypeLabel][0]}\n";
+				var guide = DataMode.ChildGuideContent!;
+                string output = $"{AddIndentation()}\"{characterTag}\": {{ {guide.GuideStart}\n";
 
                 var keys = content.Keys.ToList();
                 for (int i = 0; i < content.Count; i++)
@@ -495,7 +436,7 @@ namespace MonoBuilder.Models
                             output += $"{AddIndentation()}{AddIndentation()}{ProcessDictionaryTag(tag, data)},\n";
                         }
 
-                        output += $"{AddIndentation()}}}, {ContentGuides[TypeLabel][1]}";
+                        output += $"{AddIndentation()}}}, {guide.GuideEnd}";
                         break;
                     }
 
@@ -509,53 +450,13 @@ namespace MonoBuilder.Models
 
             return null;
         }
+		#endregion
 
-        private void CreateCharacterDirectory(string tag, string? data)
-        {
-            var assets = ApplicationSettings?.GetFolderPath("Assets");
-            if (assets != null && data != null)
-            {
-                if (Path.Exists($"{assets}/characters") &&
-                    !Path.Exists($"{assets}/characters/{data}"))
-                {
-                    if (DialogBox.Show(
-                        $"It appears this character's directory does not exist.\nWould you like to generate the missing directory?\n\nCharacter: {tag}\nDirectory: {data}",
-                        "Missing Directory",
-                        DialogButtonDefaults.YesNo,
-                        DialogIcon.Question) == DialogBoxResult.Yes)
-                    {
-                        Directory.CreateDirectory($"{assets}/characters/{data}");
-                    }
-                }
-            }
-        }
-
-        private string ProcessDictionaryTag(string key, object value)
-        {
-            if (value is string stringValue)
-            {
-                return $"\"{key}\": \"{stringValue.Replace("\"", "\\\"")}\"";
-            }
-
-            return $"\"{key}\": {value}";
-        }
-
-        private int FindFirstNonWhitespaceIndex(string input)
-        {
-            for (int i = 0; i < input.Length; i++)
-            {
-                if (!char.IsWhiteSpace(input[i]))
-                {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        public void AddCharacterToScript(string tag, Dictionary<string, string?> content, string? fileKey = null)
+		#region Engine File Manipulation
+		public override void AddEntityToScript(string tag, Dictionary<string, string?> content, string? fileKey = null)
         {
             fileKey ??= FindCharacter(tag)?.FileKey;
-            var filePath = ResolveCharacterFilePath(fileKey, out string resolvedFileKey);
+            var filePath = ResolveDataFilePath(fileKey, out string resolvedFileKey);
             if (filePath == null)
             {
                 DialogBox.Show(
@@ -570,8 +471,10 @@ namespace MonoBuilder.Models
 
             try
             {
+				var masterGuide = DataMode.MasterGuideContent;
+				var childGuide = DataMode.ChildGuideContent!;
                 var lines = File.ReadAllLines(filePath).ToList();
-                int lastIndex = lines.FindLastIndex(line => line.EndsWith(ContentGuides[TypeLabel][1]));
+                int lastIndex = lines.FindLastIndex(line => line.EndsWith(childGuide.GuideEnd));
 
                 if (lastIndex != -1)
                 {
@@ -600,7 +503,7 @@ namespace MonoBuilder.Models
                         {
                             character.FileKey = resolvedFileKey;
                             character.IsSynced = true;
-                            SaveData();
+                            SaveData(SaveString);
                         }
                     }
                     else
@@ -614,7 +517,7 @@ namespace MonoBuilder.Models
                 }
                 else
                 {
-                    lastIndex = lines.FindLastIndex(line => line.Contains(ContentGuides[Type][0]));
+                    lastIndex = lines.FindLastIndex(line => line.Contains(masterGuide.GuideStart));
 
                     if (lastIndex != -1)
                     {
@@ -638,7 +541,7 @@ namespace MonoBuilder.Models
                             {
                                 character.FileKey = resolvedFileKey;
                                 character.IsSynced = true;
-                                SaveData();
+                                SaveData(SaveString);
                             }
                         }
                         else
@@ -653,7 +556,11 @@ namespace MonoBuilder.Models
                     else
                     {
                         DialogBox.Show(
-                            $"Missing Character formatting!\nIn order to use \"Add Characters to Script\" functionality, your character labels must be formatted with with opening and ending tags.\n\nExample:\n{ContentGuides[Type][0]}\n    \"YourLabel\": {{ {ContentGuides[TypeLabel][0]}\n        // Your content\n    }} {ContentGuides[TypeLabel][1]}\n{ContentGuides[Type][1]}",
+                            $"Missing Character formatting!\nSyncing your characters reuiqres labels to be formatted with with opening and ending tags.\n\n" +
+							$"Example:\n{masterGuide.GuideStart}\n" +
+							$"{AddIndentation()}\"YourTag\": {{ {childGuide.GuideStart}\n" +
+							$"{AddIndentation()}{AddIndentation()}// Your content\n" +
+							$"{AddIndentation()}}} {childGuide.GuideEnd}\n{masterGuide.GuideEnd}",
                             "Missing Characters");
                     }
                 }
@@ -674,108 +581,219 @@ namespace MonoBuilder.Models
             }
         }
 
-        public bool RemoveCharacterFromScript(int characterId, bool save)
+        public override bool RemoveEntityFromScript(int characterId, bool shouldSave = true)
         {
-            Character? character = AllCharacters.FirstOrDefault(c => c.EntityID == characterId);
-            if (character != null)
-            {
-                var filePath = ResolveCharacterFilePath(character, out _);
-                if (filePath == null)
-                {
-                    DialogBox.Show(
-                        $"Something has gone wrong while attempting to remove character data for \"{character.Tag}\"!\n\nPath: {filePath ?? "null"}",
-                        "Failed to Remove Character Data",
-                        DialogButtonDefaults.OK,
-                        DialogIcon.Error);
-                    throw new Exception($"Bad file data...\n{filePath ?? "null"}");
-                }
+			return RemoveEntitiesFromScript([characterId], shouldSave);
+      //      Character? character = AllCharacters.FirstOrDefault(c => c.EntityID == characterId);
+      //      if (character != null)
+      //      {
+      //          var filePath = ResolveDataFilePath(character, out _);
+      //          if (filePath == null)
+      //          {
+      //              DialogBox.Show(
+      //                  $"Something has gone wrong while attempting to remove character data for \"{character.Tag}\"!\n\nPath: {filePath ?? "null"}",
+      //                  "Failed to Remove Character Data",
+      //                  DialogButtonDefaults.OK,
+      //                  DialogIcon.Error);
+      //              throw new Exception($"Bad file data...\n{filePath ?? "null"}");
+      //          }
 
-                string tempPath = Path.GetTempFileName();
+      //          string tempPath = Path.GetTempFileName();
 
-                try
-                {
-                    using (var reader = new StreamReader(filePath))
-                    using (var writer = new StreamWriter(tempPath))
-                    {
-                        string? line;
-                        string? lastLine = null;
-                        bool isRemoving = false;
+      //          try
+      //          {
+      //              using (var reader = new StreamReader(filePath))
+      //              using (var writer = new StreamWriter(tempPath))
+      //              {
+						//var masterGuider = DataMode.MasterGuideContent;
+      //                  string? line;
+      //                  string? lastLine = null;
+      //                  bool isRemoving = false;
 
-                        while ((line = reader.ReadLine()) != null)
-                        {
-                            bool isStart = line.EndsWith(ContentGuides[TypeLabel][0]) && line.Contains(character.Tag);
-                            bool isEnd = isRemoving && line.EndsWith(ContentGuides[TypeLabel][1]);
+      //                  while ((line = reader.ReadLine()) != null)
+      //                  {
+      //                      bool isStart = line.EndsWith(masterGuider.GuideStart) && line.Contains(character.Tag);
+      //                      bool isEnd = isRemoving && line.EndsWith(masterGuider.GuideEnd);
 
-                            if (isStart)
-                            {
-                                string trimmed = line.Trim();
-                                var result = CharacterRegex().Match(trimmed);
-                                if (result.Success && result.Groups["tag"].Value == character.Tag)
-                                {
-                                    isRemoving = true;
-                                    if (string.IsNullOrEmpty(lastLine))
-                                        lastLine = null;
-                                }
-                            }
+      //                      if (isStart)
+      //                      {
+      //                          string trimmed = line.Trim();
+      //                          var result = CharacterRegex().Match(trimmed);
+      //                          if (result.Success && result.Groups["tag"].Value == character.Tag)
+      //                          {
+      //                              isRemoving = true;
+      //                              if (string.IsNullOrEmpty(lastLine))
+      //                                  lastLine = null;
+      //                          }
+      //                      }
 
-                            if (lastLine != null)
-                            {
-                                writer.WriteLine(lastLine);
-                            }
+      //                      if (lastLine != null)
+      //                      {
+      //                          writer.WriteLine(lastLine);
+      //                      }
 
-                            if (isEnd)
-                            {
-                                isRemoving = false;
-                                lastLine = null;
-                                continue;
-                            }
+      //                      if (isEnd)
+      //                      {
+      //                          isRemoving = false;
+      //                          lastLine = null;
+      //                          continue;
+      //                      }
 
-                            lastLine = isRemoving ? null : line;
-                        }
+      //                      lastLine = isRemoving ? null : line;
+      //                  }
 
-                        if (lastLine != null)
-                            writer.WriteLine(lastLine);
+      //                  if (lastLine != null)
+      //                      writer.WriteLine(lastLine);
 
-                        character.IsSynced = false;
-                        if (save)
-                        {
-                            SaveData();
-                        }
-                    }
+      //                  character.IsSynced = false;
+      //                  if (shouldSave)
+      //                  {
+      //                      SaveData();
+      //                  }
+      //              }
 
-                    FileWatcher.ReplaceFile(tempPath, filePath);
-                    return true;
-                }
-                catch (Exception error)
-                {
-                    DialogBox.Show(
-                        $"Something went wrong while removing character data for \"{character.Tag}\"!\nNo need to panic, the process was cut off before anything saved.\n\n{error}",
-                        "Failed to Remove Character Data",
-                        DialogButtonDefaults.OK,
-                        DialogIcon.Error);
-                    throw new Exception($"Bad removal data..\n{error}");
-                }
-                finally
-                {
-                    if (File.Exists(tempPath))
-                        File.Delete(tempPath);
-                }
-            }
-            else
-            {
-                DialogBox.Show(
-                    "Missing or Invalid \"Character\"...",
-                    "Bad Data",
-                    DialogButtonDefaults.OK,
-                    DialogIcon.Error);
-                throw new Exception($"Invalid input data...");
-            }
-        }
+      //              FileWatcher.ReplaceFile(tempPath, filePath);
+      //              return true;
+      //          }
+      //          catch (Exception error)
+      //          {
+      //              DialogBox.Show(
+      //                  $"Something went wrong while removing character data for \"{character.Tag}\"!\nNo need to panic, the process was cut off before anything saved.\n\n{error}",
+      //                  "Failed to Remove Character Data",
+      //                  DialogButtonDefaults.OK,
+      //                  DialogIcon.Error);
+      //              throw new Exception($"Bad removal data..\n{error}");
+      //          }
+      //          finally
+      //          {
+      //              if (File.Exists(tempPath))
+      //                  File.Delete(tempPath);
+      //          }
+      //      }
+      //      else
+      //      {
+      //          DialogBox.Show(
+      //              "Missing or Invalid \"Character\"...",
+      //              "Bad Data",
+      //              DialogButtonDefaults.OK,
+      //              DialogIcon.Error);
+      //          throw new Exception($"Invalid input data...");
+      //      }
+		}
 
-        public bool UpdateCharacterInScript(string tag, Dictionary<string, string?> content, string? fileKey = null)
+		public override bool RemoveEntitiesFromScript(int[] characterIds, bool shouldSave = true)
+		{
+			if (characterIds.Length == 0)
+				return false;
+
+			var idsToRemove = new HashSet<int>(characterIds);
+			var charactersToRemove = new List<Character>();
+
+			foreach (int id in idsToRemove)
+			{
+				if (CheckData(id) is Character notif)
+				{
+					notif.IsSynced = false;
+					charactersToRemove.Add(notif);
+				}
+			}
+
+			if (charactersToRemove.Count == 0)
+				return false;
+
+			var charactersByFile = charactersToRemove
+				.GroupBy(notif => ResolveDataFilePath(notif, out _))
+				.Where(g => g.Key != null)
+				.ToDictionary(g => g.Key!, g => g.ToList());
+
+			try
+			{
+				foreach (var (filePath, notificationsInFile) in charactersByFile)
+					RemoveEntityFromSingleFile(filePath, notificationsInFile);
+
+				if (shouldSave) SaveData(SaveString);
+				return true;
+			}
+			catch (Exception ex)
+			{
+				DialogBox.Show($"Failed to remove notification data from script.\n\n{ex}",
+					"Remove Failed", DialogButtonDefaults.OK, DialogIcon.Error);
+				throw;
+			}
+		}
+
+		protected override void RemoveEntityFromSingleFile(string filePath, List<Character> charactersToRemove)
+		{
+			string tempPath = Path.GetTempFileName();
+			var namesToRemove = new HashSet<string>(charactersToRemove.Select(n => n.Tag));
+
+			try
+			{
+				using (var reader = new StreamReader(filePath))
+				using (var writer = new StreamWriter(tempPath))
+				{
+					var masterGuide = DataMode.MasterGuideContent;
+					var childGuide = DataMode.ChildGuideContent!;
+					bool inSection = false;
+					bool isRemoving = false;
+					string? line;
+
+					while ((line = reader.ReadLine()) != null)
+					{
+						string trimmed = line.Trim();
+
+						if (!inSection && trimmed == masterGuide.GuideStart)
+						{
+							inSection = true;
+							writer.WriteLine(line);
+							continue;
+						}
+
+						if (inSection && trimmed == masterGuide.GuideEnd)
+						{
+							inSection = false;
+							writer.WriteLine(line);
+							continue;
+						}
+
+						if (inSection)
+						{
+							var match = CharacterRegex().Match(trimmed);
+							bool isBlockEnd = trimmed.EndsWith(childGuide.GuideEnd);
+
+							if (!isRemoving && match.Success && namesToRemove.Contains(match.Groups["tag"].Value))
+							{
+								isRemoving = true;
+								continue;
+							}
+
+							if (isRemoving && isBlockEnd)
+							{
+								isRemoving = false;
+								continue;
+							}
+
+							if (isRemoving)
+								continue;
+						}
+
+						writer.WriteLine(line);
+					}
+				}
+
+				FileWatcher.ReplaceFile(tempPath, filePath);
+			}
+			finally
+			{
+				if (File.Exists(tempPath))
+					File.Delete(tempPath);
+			}
+		}
+
+		public override bool UpdateEntityInScript(string tag, Dictionary<string, string?> content, string? fileKey = null)
         {
             fileKey ??= FindCharacter(tag)?.FileKey;
-            var filePath = ResolveCharacterFilePath(fileKey, out string resolvedFileKey);
+            var filePath = ResolveDataFilePath(fileKey, out string resolvedFileKey);
             if (filePath == null)
             {
                 DialogBox.Show(
@@ -798,6 +816,8 @@ namespace MonoBuilder.Models
                 using (var reader = new StreamReader(filePath))
                 using (var writer = new StreamWriter(tempPath))
                 {
+					var masterGuider = DataMode.MasterGuideContent;
+					var childGuide = DataMode.ChildGuideContent!;
                     string? line;
                     bool startUpdating = false;
                     var writtenKeys = new HashSet<string>();
@@ -809,7 +829,7 @@ namespace MonoBuilder.Models
 
                     while ((line = reader.ReadLine()) != null)
                     {
-                        if (line.EndsWith(ContentGuides[TypeLabel][0], StringComparison.Ordinal) && line.Contains(tag, StringComparison.Ordinal))
+                        if (line.EndsWith(childGuide.GuideStart, StringComparison.Ordinal) && line.Contains(tag, StringComparison.Ordinal))
                         {
                             string trimmed = line.Trim();
                             var result = CharacterRegex().Match(trimmed);
@@ -821,7 +841,7 @@ namespace MonoBuilder.Models
                             }
                         }
 
-                        if (startUpdating && line.EndsWith(ContentGuides[TypeLabel][1]))
+                        if (startUpdating && line.EndsWith(childGuide.GuideEnd))
                         {
                             var blockIndent = line.Substring(0, FindFirstNonWhitespaceIndex(line));
                             foreach (string newKey in tagsToCheck)
@@ -898,7 +918,7 @@ namespace MonoBuilder.Models
                 {
                     character.FileKey = resolvedFileKey;
                     character.IsSynced = true;
-                    SaveData();
+                    SaveData(SaveString);
                 }
 
                 return true;
@@ -918,134 +938,8 @@ namespace MonoBuilder.Models
                     File.Delete(tempPath);
             }
         }
+		#endregion
 
-        public Dictionary<string, bool> CharacterContentMatches(List<string> tags, string? fileKey = null)
-        {
-            var results = tags.ToDictionary(t => t, _ => false);
-            var remaining = new HashSet<string>(tags);
-
-            var filePath = ResolveCharacterFilePath(fileKey, out _);
-            if (filePath == null)
-                return results;
-
-            string[] fileContent = File.ReadAllLines(filePath);
-            int start = Array.FindIndex(fileContent, line => line.Trim() == ContentGuides[Type][0]);
-            int end = Array.FindIndex(fileContent, start + 1, line => line.Trim() == ContentGuides[Type][1]);
-
-            if (start == -1 || end == -1)
-                return results;
-
-            string[] innerContent = fileContent[(start + 1)..end];
-            string currentTag = string.Empty;
-            var parsedAttributes = new Dictionary<string, string>();
-
-            foreach (string rawLine in innerContent)
-            {
-                if (remaining.Count == 0) break;
-
-                string line = rawLine.Trim();
-                var charResult = CharacterRegex().Match(line);
-                bool isEndCharacter = line.StartsWith("} // END_CHARACTER") || line.StartsWith("}, // END_CHARACTER");
-
-                if (charResult.Success)
-                {
-                    currentTag = charResult.Groups["tag"].Value;
-                    parsedAttributes.Clear();
-                    continue;
-                }
-
-                if (currentTag != string.Empty && remaining.Contains(currentTag))
-                {
-                    if (isEndCharacter)
-                    {
-                        var character = AllCharacters.FirstOrDefault(c => c.Tag == currentTag);
-                        if (character != null)
-                        {
-                            parsedAttributes.TryGetValue("name", out string? scriptName);
-                            parsedAttributes.TryGetValue("color", out string? scriptColor);
-                            parsedAttributes.TryGetValue("directory", out string? scriptDirectory);
-
-                            results[currentTag] =
-                                scriptName == character.Name &&
-                                (scriptColor ?? string.Empty) == (character.Color ?? string.Empty) &&
-                                (scriptDirectory ?? string.Empty) == (character.Directory ?? string.Empty);
-                        }
-
-                        remaining.Remove(currentTag);
-                        currentTag = string.Empty;
-                        parsedAttributes.Clear();
-                        continue;
-                    }
-
-                    string attrLine = line.EndsWith(",") ? line[..^1] : line;
-                    var attrRes = AttributeRegex().Match(attrLine);
-                    if (attrRes.Success)
-                    {
-                        string key = attrRes.Groups["key"].Value;
-                        string attribute = attrRes.Groups["attr"].Value;
-
-                        if (attribute.Length >= 2 &&
-                            (attribute.StartsWith("\"") && attribute.EndsWith("\"") ||
-                             attribute.StartsWith("'") && attribute.EndsWith("'") ||
-                             attribute.StartsWith("`") && attribute.EndsWith("`")))
-                        {
-                            attribute = attribute[1..^1];
-                        }
-
-                        parsedAttributes[key] = attribute;
-                    }
-                }
-            }
-
-            return results;
-        }
-
-        public bool CheckSynchronicity(bool showMessage = true)
-        {
-            if (ApplicationSettings == null) return false;
-
-            bool charactersHaveChanged = false;
-            var files = GetCharacterFiles();
-
-            foreach (var (fileKey, _) in files)
-            {
-                var tagsInFile = AllCharacters
-                    .Where(c => (string.IsNullOrEmpty(c.FileKey)
-                        ? fileKey == ResolveCharacterFileKey()
-                        : c.FileKey == fileKey) && c.IsSynced)
-                    .Select(c => c.Tag)
-                    .ToList();
-
-                if (tagsInFile.Count == 0)
-                    continue;
-
-                var contentMatches = CharacterContentMatches(tagsInFile, fileKey);
-
-                foreach (string tag in tagsInFile)
-                {
-                    contentMatches.TryGetValue(tag, out bool matches);
-                    if (!matches)
-                    {
-                        charactersHaveChanged = true;
-                        break;
-                    }
-                }
-
-                if (charactersHaveChanged)
-                    break;
-            }
-
-            if (charactersHaveChanged && showMessage)
-            {
-                DialogBox.Show(
-                    $"It looks like something changed from the last time the program was opened.\nCharacters that have been modified will appear as such when opening the settings screen.\n\nDue to the fragile nature of characters, synchronicity checks and changes cannot be disabled. However, you can disable this message in the settings screen.",
-                    "Changes Have Been Made",
-                    DialogButtonDefaults.OK,
-                    DialogIcon.Warning);
-            }
-
-            return charactersHaveChanged;
-        }
-        #endregion
-    }
+		#endregion
+	}
 }

@@ -1,8 +1,4 @@
-﻿using MonoBuilder.Models.generics.enums;
-using MonoBuilder.Views.ViewUtils;
-using System.Diagnostics;
-using System.Windows;
-using System.Windows.Navigation;
+﻿using System.Windows;
 using MonoBuilder.ViewModels.MainModel;
 
 namespace MonoBuilder

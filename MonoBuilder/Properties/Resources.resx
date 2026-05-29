@@ -134,6 +134,6 @@
     <comment>The official long name of the program.</comment>
   </data>
   <data name="Version" xml:space="preserve">
-    <value>0.5.0</value>
+    <value>0.6.0</value>
   </data>
 </root>

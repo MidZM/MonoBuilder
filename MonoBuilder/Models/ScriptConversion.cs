@@ -31,7 +31,6 @@ namespace MonoBuilder.Models
 				if (SetProperty(ref _pattern, value))
 				{
 					_patternString = value?.ToString() ?? string.Empty;
-					OnPropertyChanged(nameof(Pattern));
 					OnPropertyChanged(nameof(PatternString));
 				}
 			}
@@ -44,8 +43,7 @@ namespace MonoBuilder.Models
 			{
 				if (_patternString == value) return;
 
-				_patternString = value ?? string.Empty;
-				OnPropertyChanged(nameof(PatternString));
+				SetProperty(ref _patternString, value ?? string.Empty);
 
 				try
 				{
@@ -66,13 +64,7 @@ namespace MonoBuilder.Models
 		public bool IsEnabled
 		{
 			get => _isEnabled;
-			set
-			{
-				if (SetProperty(ref _isEnabled, value))
-				{
-					OnPropertyChanged(nameof(IsEnabled));
-				}
-			}
+			set => SetProperty(ref _isEnabled, value);
 		}
 
         public int Priority { get; set; }
@@ -111,7 +103,7 @@ namespace MonoBuilder.Models
 
     public partial class ScriptConversion
     {
-        private Characters CharacterDatabase { get; set; }
+        private Characters CharacterData { get; set; }
         private ActionHelper ActionUtility { get; set; }
 
         public List<ConversionRule> ConversionRules { get; set; } = new()
@@ -145,7 +137,7 @@ namespace MonoBuilder.Models
 
         public ScriptConversion(Characters characters, ActionHelper actionHelper)
         {
-            CharacterDatabase = characters;
+            CharacterData = characters;
             ActionUtility = actionHelper;
             InlineFormatTags = ActionUtility.AllActions.ToArray();
 
@@ -380,8 +372,8 @@ namespace MonoBuilder.Models
 
 		private void GetCharacterList()
 		{
-			_characterList ??= CharacterDatabase.AllCharacters.ToDictionary(c => c.Name.ToLower(), c => c);
-			_characterTagList ??= CharacterDatabase.AllCharacters.ToDictionary(c => c.Tag, c => c);
+			_characterList ??= CharacterData.DataMode.Collection.ToDictionary(c => c.Name.ToLower(), c => c);
+			_characterTagList ??= CharacterData.DataMode.Collection.ToDictionary(c => c.Tag, c => c);
 		}
 
 		public void UnsetCharacterList()
