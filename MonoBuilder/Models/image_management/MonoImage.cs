@@ -17,61 +17,31 @@ namespace MonoBuilder.Models.image_management
         public int EntityID
         {
             get => _id;
-            set
-            {
-                if (SetProperty(ref _id, value))
-                {
-                    OnPropertyChanged(nameof(EntityID));
-                }
-            }
+            set => SetProperty(ref _id, value);
         }
 
         public string Name
         {
             get => _name;
-            set
-            {
-                if (SetProperty(ref _name, value))
-                {
-                    OnPropertyChanged(nameof(Name));
-                }
-            }
+            set => SetProperty(ref _name, value);
         }
 
         public string Path
         {
             get => _path;
-            set
-            {
-                if (SetProperty(ref _path, value))
-                {
-                    OnPropertyChanged(nameof(Path));
-                }
-            }
+            set => SetProperty(ref _path, value);
         }
 
         public string FileKey
         {
             get => _fileKey;
-            set
-            {
-                if (SetProperty(ref _fileKey, value))
-                {
-                    OnPropertyChanged(nameof(_fileKey));
-                }
-            }
+            set => SetProperty(ref _fileKey, value);
         }
 
         public bool IsSynced
         {
             get => _isSynced;
-            set
-            {
-                if (SetProperty(ref _isSynced, value))
-                {
-                    OnPropertyChanged(nameof(IsSynced));
-                }
-            }
+            set => SetProperty(ref _isSynced, value);
         }
 
         public MonoImage(string name, string path)

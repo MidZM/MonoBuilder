@@ -17,49 +17,25 @@ namespace MonoBuilder.Models.character_management
         public int EntityID
         {
             get => _id;
-            set
-            {
-                if (SetProperty(ref _id, value))
-                {
-                    OnPropertyChanged(nameof(EntityID));
-                }
-            }
+            set => SetProperty(ref _id, value);
         }
 
         public string Name
         {
             get => _name;
-            set
-            {
-                if (SetProperty(ref _name, value))
-                {
-                    OnPropertyChanged(nameof(Name));
-                }
-            }
+            set => SetProperty(ref _name, value);
         }
 
         public int Index
         {
             get => _index;
-            set
-            {
-                if (SetProperty(ref _index, value))
-                {
-                    OnPropertyChanged(nameof(Index));
-                }
-            }
+            set => SetProperty(ref _index, value);
         }
 
         public ObservableCollection<LayerAsset> Layers
         {
             get => _layers;
-            set
-            {
-                if (SetProperty(ref _layers, value))
-                {
-                    OnPropertyChanged(nameof(Layers));
-                }
-            }
+            set => SetProperty(ref _layers, value);
         }
 
 		public Layer(string name, int index, IEnumerable<LayerAsset>? layers = null)
@@ -121,25 +97,13 @@ namespace MonoBuilder.Models.character_management
         public string Name
         {
             get => _name;
-            set
-            {
-                if (SetProperty(ref _name, value))
-                {
-                    OnPropertyChanged(nameof(Name));
-                }
-            }
+            set => SetProperty(ref _name, value);
         }
 
         public string Layer
         {
             get => _layer;
-            set
-            {
-                if (SetProperty(ref _layer, value))
-                {
-                    OnPropertyChanged(nameof(Layer));
-                }
-            }
+            set => SetProperty(ref _layer, value);
         }
 
         public LayerAsset(string name, string layer)

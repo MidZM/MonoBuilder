@@ -373,7 +373,6 @@ namespace MonoBuilder.ViewModels.SettingsModel
 			{
 				if (SetProperty(ref _value, value))
 				{
-					OnPropertyChanged(nameof(Value));
 					CommandsRaiseCanExecuteChanged();
 				}
 			}

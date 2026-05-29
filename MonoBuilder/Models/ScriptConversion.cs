@@ -31,7 +31,6 @@ namespace MonoBuilder.Models
 				if (SetProperty(ref _pattern, value))
 				{
 					_patternString = value?.ToString() ?? string.Empty;
-					OnPropertyChanged(nameof(Pattern));
 					OnPropertyChanged(nameof(PatternString));
 				}
 			}
@@ -44,8 +43,7 @@ namespace MonoBuilder.Models
 			{
 				if (_patternString == value) return;
 
-				_patternString = value ?? string.Empty;
-				OnPropertyChanged(nameof(PatternString));
+				SetProperty(ref _patternString, value ?? string.Empty);
 
 				try
 				{
@@ -66,13 +64,7 @@ namespace MonoBuilder.Models
 		public bool IsEnabled
 		{
 			get => _isEnabled;
-			set
-			{
-				if (SetProperty(ref _isEnabled, value))
-				{
-					OnPropertyChanged(nameof(IsEnabled));
-				}
-			}
+			set => SetProperty(ref _isEnabled, value);
 		}
 
         public int Priority { get; set; }

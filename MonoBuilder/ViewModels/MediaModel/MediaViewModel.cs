@@ -227,6 +227,7 @@ namespace MonoBuilder.ViewModels.MediaModel
 		public void RunInitializations(string mode)
 		{
 			Mode = mode;
+			SelectedMode = mode;
 			DataController.SetDataMode(mode.ToLower());
 
 			InitializeAvailableFiles(mode);

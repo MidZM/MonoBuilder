@@ -83,16 +83,38 @@ namespace MonoBuilder.ViewModels.MainModel
 
 			BuilderButtons = new()
 			{
-				new("Script Builder",       true, () => new ScriptBuilder(ApplicationSettings, Converter, ActionUtility)),
-				new("Character Builder",    false),
-				new("Image Builder",        true, () => new ImageBuilder(ApplicationSettings, ImageData, "Images")),
-				new("Scene Builder",        true, () => new ImageBuilder(ApplicationSettings, ImageData, "Scenes")),
-				new("Gallery Builder",      true, () => new ImageBuilder(ApplicationSettings, ImageData, "Gallery")),
-				new("Media Builder",        true, () => new MediaBuilder(ApplicationSettings, MediaData, "Music")),
-				new("Particle Builder",     false),
-				new("Message Builder",      true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Messages")),
-				new("Notification Builder", true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Notifications"))
-			};
+				new("Script Builder",		true, () => new ScriptBuilder(ApplicationSettings, Converter, ActionUtility)),
+				new("Character Builder",	false),
+				new("Image Builder",		true, () => new ImageBuilder(ApplicationSettings, ImageData, "Images")),
+				new("Scene Builder",		true, () => new ImageBuilder(ApplicationSettings, ImageData, "Scenes")),
+				new("Gallery Builder",		true, () => new ImageBuilder(ApplicationSettings, ImageData, "Gallery")),
+				new("Media Builder",		true, () =>
+				{
+					var result = DialogBox.Show(
+						"Choose an initial Media Builder...\n(You can change the builder type using the select box next to the close button.)",
+						"Choose a Builder",
+						600,
+						DialogIcon.Information,
+						new DialogButton("Music", DialogBoxResult.Continue),
+						new DialogButton("Sounds", DialogBoxResult.Yes),
+						new DialogButton("Voices", DialogBoxResult.OK),
+						new DialogButton("Videos", DialogBoxResult.TryAgain),
+						new DialogButton("Cancel", DialogBoxResult.Cancel, "ErrorButton"));
+
+					return result == DialogBoxResult.Continue
+						? new MediaBuilder(ApplicationSettings, MediaData, "Music")
+						: result == DialogBoxResult.Yes
+						? new MediaBuilder(ApplicationSettings, MediaData, "Sounds")
+						: result == DialogBoxResult.OK
+						? new MediaBuilder(ApplicationSettings, MediaData, "Voices")
+						: result == DialogBoxResult.TryAgain
+						? new MediaBuilder(ApplicationSettings, MediaData, "Videos")
+						: null;
+				}),
+				new("Particle Builder",		false),
+				new("Message Builder",		true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Messages")),
+				new("Notification Builder",	true, () => new NotificationBuilder(ApplicationSettings, NotificationData, "Notifications"))
+			}; // Particle Builder (⧉)
 
 			UtilityButtons = new()
 			{
@@ -170,8 +192,11 @@ namespace MonoBuilder.ViewModels.MainModel
 
 				var window = button.CreateWindow();
 
-				SetupEnvironment(window);
-				window.Show();
+				if (window != null)
+				{
+					SetupEnvironment(window);
+					window.Show();
+				}
 			}
 
 			if (item is UtilityButton utility)
