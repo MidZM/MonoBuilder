@@ -85,19 +85,21 @@ MonoBuilder is a graphical interface development tool designed and developed to 
 ### *Requires Setup
 Many features require the developer to set up their environment. This process is fairly easy to implement and includes automatic fail-safes in case files or folders are changed later.
 
-**(Note: it is not recommended to change the names of, or delete, files and/or folders while the program isn't running. While there are fail-safes that will change the name or remove links if files/folders are renamed or removed while the program is running, there currently aren't any fail-safes when starting the program after the fact. This could result in startup errors, broken links, or weird behavior)**
+**(Note: it is not recommended to change the names of, or delete, files and/or folders while the program isn't running. While there are fail-safes that will change the name or remove links if files/folders are renamed or removed while certain parts of the program are running, there currently aren't any fail-safes when starting the program after the fact. This could result in startup errors, broken links, or weird behavior)**
 - Enter the settings screen
 - Scroll down to "**Game Directories**"
 - Select a "**Base Folder**" (Usually the folder where the **index.html** is housed) *Required for nearly all aspects of development. (Recommended to set before doing anything else)
 - Select an "**Assets Folder**" (Where images and other assets sit, usually called "**assets**") *Not Required, but may be helpful in future updates.
 - Select an "**Image Asset Folder**" (Where images and other assets sit, usually called "**images**") *Required to use the `Image Builder`
 - Select a "**Scene Asset Folder**" (Where images and other assets sit, usually called "**scenes**") *Required to use the `Scene Builder`
-- Select a "**Gallery Asset Folder**" (Where images and other assets sit, usually called "**gallery**") *Required to use the `Gallery Builder` 
+- Select a "**Gallery Asset Folder**" (Where images and other assets sit, usually called "**gallery**") *Required to use the `Gallery Builder`
+- Select a "**Music, Sounds, Voices, and/or Videos Folder**" (Where different media assets sit, usually called "**music**", "**sounds**", "**voices**", and/or "**videos**")
 - Select (a) "**Characters File(s)**" (Where you define and add characters. Starts in the "**script.js**" by default) *Required to use a number of systems.
 - Select (a) "**Script File(s)**" (Where you define and add script labels. Starts in the "**script.js**" by default) *Not Required, but heavily advised.
 - Select (an) "**Image File(s)**" (Where you define and add image files. Starts in the "**script.js**" by default) *Required to use the `Image Builder`
 - Select (a) "**Scene File(s)**" (Where you define and add scene image files. Starts in the "**script.js**" by default) *Required to use the `Scene Builder`
 - Select (a) "**Gallery File(s)**" (Where you define and add gallery image files. Starts in the "**script.js**" by default) *Required to use the `Gallery Builder`
+- Select (a) "**Music, Sound, Voice, and/or Video File(s)**" (Where you define and add music, sound, voice, and/or video files. Starts in the "**script.js**" by default) *Required file for the needed media builder.
 - Select (a) "**Message File(s)**" (Where you define and add message files. Starts in the "**script.js**" by default) *Required to use the `Message Builder`
 - Select (a) "**Notification File(s)**" (Where you define and add notification files. Starts in the "**script.js**" by default) *Required to use the `Notification Builder`
 
@@ -200,7 +202,48 @@ monogatari.assets ('gallery', {
 });
 ```
 
-#### Setting up the Message and/or Notification File for Program MAnipulation and Development:
+#### Setting up the Message and/or Notification File for Program Manipulation and Development:
+- Insert start and end tags inside of the different `monogatari.assets(...)` declarations.
+  - Music Tags:
+    - `// MUSIC_INSERTION_POINT`
+    - `// END_MUSIC_INSERTION_POINT`
+  - Sound Tags:
+    - `// SOUNDS_INSERTION_POINT`
+    - `// END_SOUNDS_INSERTION_POINT`
+  - Voice Tags:
+    - `// VOICES_INSERTION_POINT`
+    - `// END_VOICES_INSERTION_POINT`
+  - Video Tags:
+    - `// VIDEOS_INSERTION_POINT`
+    - `// END_VIDEOS_INSERTION_POINT`
+
+```js
+monogatari.assets ('music', {
+	// MUSIC_INSERTION_POINT
+	"ImASong": "Im/A/Song/Path.mp3"
+	// END_MUSIC_INSERTION_POINT
+});
+
+monogatari.assets ('sounds', {
+	// SOUNDS_INSERTION_POINT
+	"ImASound": "Im/A/Sound/Path.mp3"
+	// END_SOUNDS_INSERTION_POINT
+});
+
+monogatari.assets ('voices', {
+	// VOICES_INSERTION_POINT
+	"ImAVoice": "Im/A/Voice/Path.mp3"
+	// END_VOICES_INSERTION_POINT
+});
+
+monogatari.assets ('videos', {
+	// VIDEOS_INSERTION_POINT
+	"ImAVideo": "Im/A/Video/Path.mp4"
+	// END_VIDEOS_INSERTION_POINT
+});
+```
+
+#### Setting up the Message and/or Notification File for Program Manipulation and Development:
 - Insert start and end tags inside of the different notifier actions: `monogatari.action('message').messages({...})`/`monogatari.action('notification').notifications({...})`
   - Message Tags:
     - `// MESSAGES_INSERTION_POINT`
@@ -262,7 +305,7 @@ monogatari.action ('notification').notifications ({
     - `"ell Hi Zaydin~~!",`
   - Regex
     - Character Dialog - `^(?<character>.+?):\s*(?<text>.+)$`
-  - *NOTE: The script builder's raw data input coloring runs on an .xshd hosted inside of your "data" folder. The folder and file is generated when the application first runs.* 
+  - *NOTE: The script builder's raw data input coloring runs on an .xshd hosted inside of your "data" folder. The folder and file is generated when the application first runs.*
 
 **NOTE: The converter is a bit "All Intensive." So, like with the example above, if you wrote `I have one goal: success.`, the converter would shorten everything behind the colon to a 3 lowercase letters (including the space) and output `"i h success.",`. This was done by design to help individuals who forget/don't set up their characters before using the converter. However, in the future, this may be changed to prevent situations as mentioned.**
 
@@ -272,4 +315,4 @@ monogatari.action ('notification').notifications ({
 - ~~A strange memory leak occurs when opening and closing the "Script Builder" over and over, causing a buildup of memory. The built-up memory is mostly released when the user opens the settings menu, but I could not identify the cause at the time to fix it.~~ (As of 0.4.0, the WPF update seems to have resolved many of the memory leak issues. While WPF is more memory intensive off the bat, this version handles memory in a much better manner.)
 #### Version — 0.4.0
 - Currently, you are unable to swap the positions of synced scripts in the script loader.
-  - This system will be either revamped or adjusted to help with better management of labels. 
+  - This system will be either revamped or adjusted to help with better management of labels.
